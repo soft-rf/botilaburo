@@ -146,8 +146,10 @@ SUPABASE_ANON_KEY=tu-anon-key-publica
   - Dashboard interactivo, control de acceso por PIN, vista previa de ofertas y visor `preview.html`.
 - [x] **Fase 6: Modo Continuo Automático**
   - Soporte para ejecución periódica desatendida mediante flag `--loop`.
-- [ ] **Fase 7: Multi-Portal (Bumeran Argentina)**
+- [x] **Fase 7: Multi-Portal (Bumeran Argentina)**
   - [x] Scraper base `src/scrapers/bumeran.py` implementado y validado en vivo.
-  - [ ] Adaptación de marcas temporales de Bumeran en `time_filter.py`.
-  - [ ] Mapeo de URLs de Bumeran en `config/urls.json`.
-  - [ ] Orquestación en `src/main.py` y visualización web.
+  - [x] Adaptación de marcas temporales de Bumeran en `time_filter.py`.
+  - [x] Mapeo de URLs de Bumeran en `config/urls.json` (zonas y roles).
+  - [x] Orquestación en `src/main.py` y sincronización en la nube con `source: "bumeran"`.
+- [ ] **Fase 8: Siguientes Portales (LinkedIn / Zonajobs)**
+  - Expansión modular hacia nuevos portales de empleo siguiendo el contrato `BaseScraper`.
