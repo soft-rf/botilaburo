@@ -1,0 +1,64 @@
+{
+  "computrabajo": [
+    {
+      "category": "CABA - Búsqueda General",
+      "url": "https://ar.computrabajo.com/empleos-en-capital-federal?by=publication_date",
+      "type": "general",
+      "enabled": true
+    },
+    {
+      "category": "San Martín - Búsqueda General",
+      "url": "https://ar.computrabajo.com/empleos-en-buenos-aires-gba-en-general-san-martin?by=publication_date",
+      "type": "general",
+      "enabled": true
+    },
+    {
+      "category": "Tres de Febrero (Caseros / Sáenz Peña) - General",
+      "url": "https://ar.computrabajo.com/empleos-en-buenos-aires-gba-en-tres-de-febrero?by=publication_date",
+      "type": "general",
+      "enabled": true
+    },
+    {
+      "category": "Vicente López (Florida / Olivos / La Lucila) - General",
+      "url": "https://ar.computrabajo.com/empleos-en-buenos-aires-gba-en-vicente-lopez?by=publication_date",
+      "type": "general",
+      "enabled": true
+    },
+    {
+      "category": "San Isidro (Martínez / San Isidro) - General",
+      "url": "https://ar.computrabajo.com/empleos-en-buenos-aires-gba-en-san-isidro?by=publication_date",
+      "type": "general",
+      "enabled": true
+    },
+    {
+      "category": "Soporte Técnico",
+      "url": "https://ar.computrabajo.com/trabajo-de-soporte-tecnico?by=publication_date",
+      "type": "specific",
+      "enabled": true
+    },
+    {
+      "category": "Help Desk",
+      "url": "https://ar.computrabajo.com/trabajo-de-help-desk?by=publication_date",
+      "type": "specific",
+      "enabled": true
+    },
+    {
+      "category": "Mesa de Ayuda",
+      "url": "https://ar.computrabajo.com/trabajo-de-mesa-de-ayuda?by=publication_date",
+      "type": "specific",
+      "enabled": true
+    },
+    {
+      "category": "Farmacia / Auxiliar de Farmacia",
+      "url": "https://ar.computrabajo.com/trabajo-de-farmacia?by=publication_date",
+      "type": "specific",
+      "enabled": true
+    },
+    {
+      "category": "Administrativo",
+      "url": "https://ar.computrabajo.com/trabajo-de-administrativo?by=publication_date",
+      "type": "specific",
+      "enabled": true
+    }
+  ]
+}

@@ -1,0 +1,119 @@
+{
+  "target_roles": [
+    {
+      "priority": 1,
+      "area": "IT / Soporte Técnico / Redes",
+      "roles": [
+        "Soporte Técnico",
+        "Help Desk",
+        "Mesa de Ayuda",
+        "Field Support / Soporte On-Site",
+        "Técnico de Redes / Infraestructura",
+        "Operador de Monitoreo / NOC Jr"
+      ]
+    },
+    {
+      "priority": 2,
+      "area": "Farmacia Comercial",
+      "roles": [
+        "Empleado de Farmacia",
+        "Auxiliar de Farmacia",
+        "Vendedor de Farmacia",
+        "Dispensador de Mostrador"
+      ]
+    },
+    {
+      "priority": 3,
+      "area": "Administrativo General",
+      "roles": [
+        "Auxiliar Administrativo",
+        "Asistente Administrativo",
+        "Data Entry / Carga de Datos",
+        "Facturación y Archivo"
+      ]
+    }
+  ],
+  "keywords": {
+    "positive": [
+      "soporte",
+      "help desk",
+      "mesa de ayuda",
+      "tecnico",
+      "redes",
+      "infraestructura",
+      "it",
+      "noc",
+      "computo",
+      "hardware",
+      "sistemas",
+      "microinformatico",
+      "farmacia",
+      "farmaceutic",
+      "auxiliar de farmacia",
+      "medicamentos",
+      "perfumeria",
+      "administrativ",
+      "data entry",
+      "asistente",
+      "facturacion",
+      "archivo",
+      "recepcion",
+      "oficina"
+    ],
+    "negative": [
+      "telemarketer",
+      "call center",
+      "ventas",
+      "comision",
+      "prestamo",
+      "cobranza",
+      "chofer",
+      "repartidor",
+      "cociner",
+      "camarer",
+      "bachero",
+      "mozo",
+      "seguridad",
+      "vigilador",
+      "limpieza",
+      "maestranza",
+      "senior",
+      "sr",
+      "semi senior",
+      "lider tecnico",
+      "tech lead",
+      "gerente",
+      "director",
+      "electromecanic",
+      "mecanic",
+      "metalurgic",
+      "tornero",
+      "soldador",
+      "contador",
+      "contadora",
+      "rrhh",
+      "recursos humanos",
+      "graduado",
+      "graduada",
+      "licenciado",
+      "licenciada"
+    ]
+  },
+  "preferences": {
+    "allowed_locations": [
+      "CABA / Capital Federal",
+      "San Martín",
+      "Villa Maipú",
+      "Caseros",
+      "Sáenz Peña",
+      "Vicente López",
+      "Florida",
+      "Olivos",
+      "La Lucila",
+      "Martínez",
+      "San Isidro",
+      "Remoto",
+      "Híbrido"
+    ]
+  }
+}
