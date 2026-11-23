@@ -14,6 +14,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.models.job import JobOffer
+from src.scrapers.bumeran import BumeranScraper
 from src.scrapers.computrabajo import ComputrabajoScraper
 from src.utils.database import JobDatabase
 from src.utils.deduplicator import JobDeduplicator
@@ -31,13 +32,13 @@ logger = logging.getLogger("JobHunterBot")
 
 
 def load_config_urls(config_path: Path) -> List[dict]:
-    """Carga y retorna las URLs habilitadas desde el archivo de configuración.
+    """Carga y retorna las URLs habilitadas de todos los portales configurados.
 
     Args:
         config_path: Ruta al archivo urls.json.
 
     Returns:
-        Lista de diccionarios con la configuración de cada búsqueda.
+        Lista de diccionarios con la configuración de cada búsqueda y su portal asociado.
     """
     if not config_path.exists():
         logger.error("No se encontró el archivo de configuración en: %s", config_path)
@@ -46,8 +47,18 @@ def load_config_urls(config_path: Path) -> List[dict]:
     try:
         with open(config_path, "r", encoding="utf-8") as f:
             data = json.load(f)
-            urls = data.get("computrabajo", [])
-            return [item for item in urls if item.get("enabled", False)]
+
+        targets: List[dict] = []
+        for portal_name, urls in data.items():
+            if not isinstance(urls, list):
+                continue
+            for item in urls:
+                if item.get("enabled", False):
+                    item_copy = dict(item)
+                    item_copy["portal"] = portal_name
+                    targets.append(item_copy)
+
+        return targets
     except Exception as e:
         logger.error("Error al leer %s: %s", config_path, str(e))
         return []
@@ -99,8 +110,11 @@ def main() -> None:
     keyword_filter = KeywordFilter(config_path=profile_file)
     db = JobDatabase()
 
-    # Inicializamos el scraper en MODO VISIBLE (headless=False) para observar su comportamiento
-    scraper = ComputrabajoScraper(headless=False)
+    # Inicializamos los scrapers disponibles para cada portal
+    scrapers: Dict[str, Any] = {
+        "computrabajo": ComputrabajoScraper(headless=False),
+        "bumeran": BumeranScraper(headless=False)
+    }
 
     all_fresh_offers: List[JobOffer] = []
 
@@ -108,8 +122,14 @@ def main() -> None:
         category = target.get("category", "General")
         url = target.get("url", "")
         is_general = target.get("type") == "general"
+        portal = target.get("portal", "computrabajo")
 
-        logger.info("--> Escaneando: '%s' (tipo: %s)", category, "General" if is_general else "Específica")
+        scraper = scrapers.get(portal)
+        if not scraper:
+            logger.warning("No hay scraper registrado para el portal '%s'. Omitiendo.", portal)
+            continue
+
+        logger.info("--> Escaneando [%s]: '%s' (tipo: %s)", portal.upper(), category, "General" if is_general else "Específica")
         extracted_offers = scraper.extract(url)
 
         # 1. Filtro geográfico estricto (CABA, San Martín, Tres de Febrero, Zona Norte, Remoto)
