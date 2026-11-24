@@ -89,9 +89,13 @@ def save_offers_to_csv(offers: List[JobOffer], output_path: Path) -> None:
         logger.error("Error al guardar el CSV en %s: %s", output_path, str(e))
 
 
-def main() -> None:
-    """Función principal de ejecución."""
-    logger.info("=== Iniciando ciclo de búsqueda de ofertas laborales ===")
+def main(headless: bool = True) -> None:
+    """Función principal de ejecución.
+    
+    Args:
+        headless: Si es True, ejecuta los navegadores en segundo plano sin ventana gráfica.
+    """
+    logger.info("=== Iniciando ciclo de búsqueda de ofertas laborales (Silencioso/Headless: %s) ===", headless)
 
     project_root = Path(__file__).resolve().parent.parent
     config_file = project_root / "config" / "urls.json"
@@ -113,9 +117,9 @@ def main() -> None:
 
     # Inicializamos los scrapers disponibles para cada portal
     scrapers: Dict[str, Any] = {
-        "computrabajo": ComputrabajoScraper(headless=False),
-        "bumeran": BumeranScraper(headless=False),
-        "indeed": IndeedScraper(headless=False)
+        "computrabajo": ComputrabajoScraper(headless=headless),
+        "bumeran": BumeranScraper(headless=headless),
+        "indeed": IndeedScraper(headless=headless)
     }
 
     all_fresh_offers: List[JobOffer] = []
@@ -183,16 +187,22 @@ def main() -> None:
 if __name__ == "__main__":
     import time
     is_loop = "--loop" in sys.argv or "-l" in sys.argv
+    is_visible = "--visible" in sys.argv or "--headed" in sys.argv
+    run_headless = not is_visible
     interval_seconds = 3600  # 60 minutos
 
     if is_loop:
-        logger.info("Modo continuo (--loop) activado: se ejecutará cada %d minutos.", interval_seconds // 60)
+        logger.info(
+            "Modo continuo (--loop) activado: se ejecutará cada %d minutos (Navegador en segundo plano: %s).",
+            interval_seconds // 60,
+            run_headless
+        )
         try:
             while True:
-                main()
+                main(headless=run_headless)
                 logger.info("--> Próxima búsqueda en %d minutos. Presiona Ctrl+C para detener.", interval_seconds // 60)
                 time.sleep(interval_seconds)
         except KeyboardInterrupt:
             logger.info("Ejecución continua detenida por el usuario.")
     else:
-        main()
+        main(headless=run_headless)
