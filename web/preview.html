@@ -27,6 +27,11 @@
     const APP_PIN = "1234";
     const SYNC_INTERVAL_MINUTES = 60;
 
+    function cleanJobUrl(url) {
+      if (!url) return "#";
+      return url.includes("computrabajo.com") ? url.split("#")[0] : url;
+    }
+
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let state = {
@@ -198,14 +203,14 @@
                   👁️ Vista Previa
                 </button>
                 ${job.status === 'new' ? `
-                  <a href="${job.url}" target="_blank" onclick="updateStatus('${job.id}', 'applied')" class="flex-1 rounded-lg bg-[#F36F21] py-2.5 text-xs font-bold text-white text-center shadow-sm hover:bg-[#DC5F16]">
+                  <a href="${cleanJobUrl(job.url)}" target="_blank" onclick="updateStatus('${job.id}', 'applied')" class="flex-1 rounded-lg bg-[#F36F21] py-2.5 text-xs font-bold text-white text-center shadow-sm hover:bg-[#DC5F16]">
                     🔗 Postularme
                   </a>
                   <button onclick="updateStatus('${job.id}', 'discarded')" class="h-9 w-9 rounded-lg border border-gray-200 bg-gray-50 text-gray-400 hover:text-rose-600 hover:bg-rose-50">
                     🗑️
                   </button>
                 ` : job.status === 'applied' ? `
-                  <a href="${job.url}" target="_blank" class="flex-1 rounded-lg bg-emerald-50 border border-emerald-200 py-2.5 text-xs font-bold text-emerald-700 text-center">
+                  <a href="${cleanJobUrl(job.url)}" target="_blank" class="flex-1 rounded-lg bg-emerald-50 border border-emerald-200 py-2.5 text-xs font-bold text-emerald-700 text-center">
                     ✅ Ver aviso oficial
                   </a>
                 ` : `
@@ -240,7 +245,7 @@
                 <p class="text-[#5C6873] text-[11px] font-medium">⏱️ Publicado: ${state.previewJob.published_time_text}</p>
               </div>
               <div class="pt-3 border-t border-gray-200 flex gap-2">
-                <a href="${state.previewJob.url}" target="_blank" onclick="updateStatus('${state.previewJob.id}', 'applied')" class="flex-1 rounded-xl bg-[#F36F21] py-3 text-center text-xs font-bold text-white shadow-sm hover:bg-[#DC5F16] capitalize">
+                <a href="${cleanJobUrl(state.previewJob.url)}" target="_blank" onclick="updateStatus('${state.previewJob.id}', 'applied')" class="flex-1 rounded-xl bg-[#F36F21] py-3 text-center text-xs font-bold text-white shadow-sm hover:bg-[#DC5F16] capitalize">
                   Ir a Postularme en ${state.previewJob.source}
                 </a>
                 ${state.previewJob.status === 'new' ? `

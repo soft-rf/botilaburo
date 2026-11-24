@@ -20,6 +20,12 @@ import {
 const APP_PIN = process.env.NEXT_PUBLIC_APP_PIN || "1234";
 const SYNC_INTERVAL_MINUTES = 60;
 
+const cleanJobUrl = (url: string) => {
+  if (!url) return "#";
+  // Quita fragmentos #lc=... de Computrabajo que rompen el deep-link en la app mobile
+  return url.includes("computrabajo.com") ? url.split("#")[0] : url;
+};
+
 const getBadgeClass = (source: string) => {
   const s = (source || "").toLowerCase();
   if (s === "computrabajo") return "bg-[#FFF3EB] text-[#D95B16] border border-[#FBD5BD]";
@@ -416,7 +422,7 @@ export default function Home() {
                 {job.status === "new" && (
                   <>
                     <a
-                      href={job.url}
+                      href={cleanJobUrl(job.url)}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => updateJobStatus(job.id, "applied")}
@@ -437,7 +443,7 @@ export default function Home() {
 
                 {job.status === "applied" && (
                   <a
-                    href={job.url}
+                    href={cleanJobUrl(job.url)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 py-2.5 text-xs font-bold text-emerald-700"
@@ -509,7 +515,7 @@ export default function Home() {
             {/* Acciones del Modal */}
             <div className="pt-3 border-t border-gray-200 flex gap-2">
               <a
-                href={previewJob.url}
+                href={cleanJobUrl(previewJob.url)}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => updateJobStatus(previewJob.id, "applied")}

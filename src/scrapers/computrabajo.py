@@ -96,7 +96,9 @@ class ComputrabajoScraper(BaseScraper):
 
                 title = link_elem.get_text(strip=True)
                 relative_url = link_elem.get("href", "")
-                full_url = urljoin(self.BASE_DOMAIN, relative_url)
+                # Eliminar fragmentos web como #lc=ListOffers-Score-4 que rompen el deep-link de la app mobile
+                clean_relative_url = relative_url.split("#")[0].strip()
+                full_url = urljoin(self.BASE_DOMAIN, clean_relative_url)
 
                 # 2. Empresa (omitiendo puntajes de calificación si existen)
                 company = "Confidencial / No especificada"
