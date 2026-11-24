@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Job Hunter - Feed en Tiempo Real",
+  title: "Job Hunter - Ofertas de Empleo en Tiempo Real",
   description: "Monitoreo y filtrado inteligente de ofertas de empleo recién publicadas",
   manifest: "/manifest.json",
 };
@@ -12,7 +12,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#0f172a",
+  themeColor: "#0D3878",
 };
 
 export default function RootLayout({
@@ -21,8 +21,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className="dark">
-      <body className="min-h-screen bg-slate-950 text-slate-100 antialiased selection:bg-emerald-500 selection:text-black">
+    <html lang="es">
+      <body className="min-h-screen bg-[#F3F5F8] text-[#1F2937] antialiased selection:bg-[#F36F21] selection:text-white">
         {children}
       </body>
     </html>

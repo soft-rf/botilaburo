@@ -1,38 +1,31 @@
 <!DOCTYPE html>
-<html lang="es" class="dark">
+<html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Job Hunter - Vista Previa Local</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            background: '#0f172a',
-            foreground: '#f8fafc',
-          }
-        }
-      }
-    }
-  </script>
   <style>
-    body { background-color: #020617; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; -webkit-tap-highlight-color: transparent; }
+    body {
+      background-color: #F3F5F8;
+      color: #1F2937;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
   </style>
 </head>
 <body class="min-h-screen">
 
-  <div id="app" class="mx-auto min-h-screen max-w-md pb-24 text-slate-100">
-    <!-- El contenido se inyecta dinámicamente con JavaScript -->
+  <div id="app" class="mx-auto min-h-screen max-w-md pb-24 text-[#1F2937]">
+    <!-- Contenido inyectado dinámicamente -->
   </div>
 
   <script>
     const SUPABASE_URL = "https://mietblpwonqlrzbriblt.supabase.co";
     const SUPABASE_KEY = "sb_publishable_xmgnEOMqKEi5fMeepZw9VA_nZVT19PP";
     const APP_PIN = "1234";
+    const SYNC_INTERVAL_MINUTES = 60;
 
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -41,11 +34,41 @@
       activeTab: "new",
       selectedSource: "all",
       jobs: [],
+      lastSyncAt: null,
       loading: true,
       previewJob: null,
       pinInput: "",
       pinError: false
     };
+
+    function getBadgeClass(source) {
+      const s = (source || "").toLowerCase();
+      if (s === "computrabajo") return "bg-[#FFF3EB] text-[#D95B16] border border-[#FBD5BD]";
+      if (s === "bumeran") return "bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200";
+      if (s === "indeed") return "bg-blue-50 text-blue-700 border border-blue-200";
+      if (s === "zonajobs") return "bg-rose-50 text-rose-700 border border-rose-200";
+      return "bg-gray-100 text-gray-700 border border-gray-200";
+    }
+
+    function formatSyncInfo(lastSyncIso) {
+      if (!lastSyncIso) return { agoText: "Sin sincronizar aún", nextText: "Esperando primer ciclo" };
+      const syncMs = new Date(lastSyncIso).getTime();
+      if (isNaN(syncMs)) return { agoText: "Sin datos", nextText: "—" };
+      const diffMin = Math.max(0, Math.floor((Date.now() - syncMs) / 60000));
+      let agoText = diffMin < 1
+        ? "Actualizado recién"
+        : diffMin < 60
+        ? `Actualizado hace ${diffMin} min`
+        : `Actualizado hace ${Math.floor(diffMin / 60)}h ${diffMin % 60}m`;
+
+      const remaining = SYNC_INTERVAL_MINUTES - diffMin;
+      let nextText = remaining > 1
+        ? `Próxima en ${remaining} min`
+        : remaining === 1
+        ? "Próxima en 1 min"
+        : "Próxima actualización inminente";
+      return { agoText, nextText };
+    }
 
     function render() {
       const app = document.getElementById("app");
@@ -53,16 +76,16 @@
       if (!state.isAuthenticated) {
         app.innerHTML = `
           <div class="flex min-h-screen items-center justify-center p-4">
-            <div class="w-full max-w-sm rounded-2xl border border-slate-800 bg-slate-900/90 p-8 shadow-2xl backdrop-blur-xl">
-              <div class="flex flex-col items-center text-center">
-                <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400 text-2xl font-bold">
+            <div class="w-full max-w-sm overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg">
+              <div class="bg-[#0D3878] px-6 py-7 text-center">
+                <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 text-white text-2xl">
                   🔒
                 </div>
-                <h1 class="mt-4 text-2xl font-bold text-white">Job Hunter Bot</h1>
-                <p class="mt-1 text-xs text-slate-400">Ingresa tu PIN de acceso (1234)</p>
+                <h1 class="mt-4 text-2xl font-bold text-white">Job<span class="text-[#F36F21]">Hunter</span></h1>
+                <p class="mt-1 text-xs text-blue-100">Ingresa tu PIN de acceso (1234)</p>
               </div>
 
-              <form onsubmit="handlePinSubmit(event)" class="mt-6 space-y-4">
+              <form onsubmit="handlePinSubmit(event)" class="p-6 space-y-4">
                 <input
                   type="password"
                   id="pinInput"
@@ -70,12 +93,12 @@
                   maxlength="6"
                   placeholder="PIN"
                   value="${state.pinInput}"
-                  class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-center text-2xl tracking-widest text-white focus:border-emerald-500 focus:outline-none"
+                  class="w-full rounded-xl border border-gray-300 bg-[#F8FAFC] px-4 py-3 text-center text-2xl tracking-widest text-[#0D3878] focus:border-[#0D3878] focus:bg-white focus:outline-none"
                   autofocus
                 />
-                ${state.pinError ? '<p class="text-center text-xs text-rose-400 font-medium">PIN incorrecto.</p>' : ''}
-                <button type="submit" class="w-full rounded-xl bg-emerald-500 py-3 font-semibold text-slate-950 hover:bg-emerald-400 transition">
-                  Desbloquear
+                ${state.pinError ? '<p class="text-center text-xs text-rose-600 font-medium">PIN incorrecto.</p>' : ''}
+                <button type="submit" class="w-full rounded-xl bg-[#F36F21] py-3 font-semibold text-white hover:bg-[#DC5F16] transition">
+                  Ingresar
                 </button>
               </form>
             </div>
@@ -87,153 +110,141 @@
       const countNew = state.jobs.filter(j => j.status === 'new').length;
       const countApplied = state.jobs.filter(j => j.status === 'applied').length;
       const countDiscarded = state.jobs.filter(j => j.status === 'discarded').length;
+      const syncInfo = formatSyncInfo(state.lastSyncAt);
 
       const filteredJobs = state.jobs.filter(j => {
         const matchesTab = j.status === state.activeTab;
-        const matchesSource = state.selectedSource === "all" || j.source.toLowerCase() === state.selectedSource.toLowerCase();
+        const matchesSource = state.selectedSource === "all" || (j.source || "").toLowerCase() === state.selectedSource.toLowerCase();
         return matchesTab && matchesSource;
       });
 
       app.innerHTML = `
-        <!-- HEADER -->
-        <header class="sticky top-0 z-30 border-b border-slate-800/80 bg-slate-950/80 px-4 py-3 backdrop-blur-md">
+        <!-- HEADER ESTILO COMPUTRABAJO -->
+        <header class="sticky top-0 z-30 bg-[#0D3878] px-4 pt-3.5 pb-3 text-white shadow-md">
           <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400 font-bold">
+            <div class="flex items-center gap-2.5">
+              <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F36F21] text-white font-bold shadow-sm">
                 💼
               </div>
               <div>
-                <h1 class="text-base font-bold text-white leading-none">Job Hunter</h1>
-                <div class="flex items-center gap-1.5 mt-1">
-                  <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                  <span class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">En tiempo real</span>
-                </div>
+                <h1 class="text-lg font-extrabold text-white leading-none">Job<span class="text-[#FF8A3D]">Hunter</span></h1>
+                <span class="text-[11px] text-blue-200 font-medium">Ofertas recientes (máx. 2h)</span>
               </div>
             </div>
-            <button onclick="fetchJobs()" class="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-slate-300 hover:text-white">
+            <button onclick="fetchJobs()" class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 text-white hover:bg-white/25">
               🔄
             </button>
           </div>
 
+          <!-- BARRA DE ESTADO DE SINCRONIZACIÓN -->
+          <div class="mt-3 flex items-center justify-between rounded-lg bg-[#082654]/80 px-3 py-1.5 text-[11px] text-blue-100 border border-white/10">
+            <span class="flex items-center gap-1.5 font-medium">
+              <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              ${syncInfo.agoText}
+            </span>
+            <span class="font-semibold text-[#FFB27D]">⏱️ ${syncInfo.nextText}</span>
+          </div>
+
           <!-- FILTRO FUENTE -->
-          <div class="mt-3 flex gap-1.5 overflow-x-auto pb-1 text-xs">
+          <div class="mt-3 flex gap-1.5 overflow-x-auto pb-0.5 text-xs">
             ${["all", "computrabajo", "bumeran", "indeed", "zonajobs"].map(src => `
-              <button onclick="setSource('${src}')" class="rounded-full px-3 py-1 font-medium capitalize transition ${
-                state.selectedSource === src ? "bg-slate-200 text-slate-950" : "bg-slate-900 text-slate-400 border border-slate-800"
+              <button onclick="setSource('${src}')" class="whitespace-nowrap rounded-full px-3.5 py-1.5 font-semibold capitalize transition ${
+                state.selectedSource === src ? "bg-white text-[#0D3878] shadow-sm" : "bg-white/10 text-blue-100 hover:bg-white/20"
               }">
-                ${src === 'all' ? 'Todas' : src}
+                ${src === 'all' ? 'Todas las fuentes' : src}
               </button>
             `).join('')}
           </div>
         </header>
 
         <!-- TABS ESTADO -->
-        <div class="flex border-b border-slate-800/80 bg-slate-900/40 px-2 text-xs font-semibold">
-          <button onclick="setTab('new')" class="flex-1 border-b-2 py-3 text-center transition ${state.activeTab === 'new' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-slate-400'}">
-            🔥 Nuevas (${countNew})
+        <div class="flex border-b border-gray-200 bg-white px-2 text-xs font-bold shadow-sm">
+          <button onclick="setTab('new')" class="flex-1 border-b-[3px] py-3 text-center transition ${state.activeTab === 'new' ? 'border-[#F36F21] text-[#0D3878]' : 'border-transparent text-gray-500'}">
+            Nuevas <span class="ml-1 rounded-full px-1.5 py-0.5 text-[10px] ${state.activeTab === 'new' ? 'bg-[#FFF3EB] text-[#D95B16]' : 'bg-gray-100 text-gray-500'}">${countNew}</span>
           </button>
-          <button onclick="setTab('applied')" class="flex-1 border-b-2 py-3 text-center transition ${state.activeTab === 'applied' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-slate-400'}">
-            ✅ Postuladas (${countApplied})
+          <button onclick="setTab('applied')" class="flex-1 border-b-[3px] py-3 text-center transition ${state.activeTab === 'applied' ? 'border-[#F36F21] text-[#0D3878]' : 'border-transparent text-gray-500'}">
+            Postuladas <span class="ml-1 rounded-full px-1.5 py-0.5 text-[10px] ${state.activeTab === 'applied' ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'}">${countApplied}</span>
           </button>
-          <button onclick="setTab('discarded')" class="flex-1 border-b-2 py-3 text-center transition ${state.activeTab === 'discarded' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-slate-400'}">
-            🗑️ Descartadas (${countDiscarded})
+          <button onclick="setTab('discarded')" class="flex-1 border-b-[3px] py-3 text-center transition ${state.activeTab === 'discarded' ? 'border-[#F36F21] text-[#0D3878]' : 'border-transparent text-gray-500'}">
+            Descartadas <span class="ml-1 rounded-full px-1.5 py-0.5 text-[10px] ${state.activeTab === 'discarded' ? 'bg-gray-200 text-gray-700' : 'bg-gray-100 text-gray-500'}">${countDiscarded}</span>
           </button>
         </div>
 
         <!-- LISTA -->
-        <section class="p-4 space-y-3">
+        <section class="p-3.5 space-y-3">
           ${state.loading ? `
-            <div class="py-16 text-center text-xs text-slate-500">Cargando oportunidades...</div>
+            <div class="py-16 text-center text-xs text-gray-500 font-medium">Buscando ofertas recientes...</div>
           ` : filteredJobs.length === 0 ? `
-            <div class="rounded-2xl border border-dashed border-slate-800 py-16 text-center text-slate-500">
-              <p class="text-sm font-medium text-slate-400">No hay ofertas en esta sección</p>
-              <p class="text-xs text-slate-500 mt-1">El scraper sincronizará las novedades en su próxima corrida.</p>
+            <div class="rounded-xl border border-dashed border-gray-300 bg-white py-14 px-6 text-center text-gray-500">
+              <p class="text-sm font-bold text-[#0D3878]">No hay ofertas en esta sección</p>
+              <p class="text-xs text-gray-500 mt-1">El bot buscará nuevas vacantes automáticamente en el próximo ciclo.</p>
             </div>
-          ` : filteredJobs.map(job => {
-            const src = (job.source || '').toLowerCase();
-            const badgeClass = src === 'computrabajo'
-              ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-              : src === 'bumeran'
-              ? 'bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20'
-              : src === 'indeed'
-              ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-              : src === 'zonajobs'
-              ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-              : 'bg-slate-500/10 text-slate-400 border border-slate-500/20';
-            return `
-            <article class="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-4 shadow-sm backdrop-blur-sm">
+          ` : filteredJobs.map(job => `
+            <article class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:border-[#0D3878]/40 transition">
               <div class="flex items-center justify-between text-[11px] mb-2">
-                <span class="rounded px-2 py-0.5 font-semibold uppercase tracking-wider ${badgeClass}">
+                <span class="rounded-md px-2 py-0.5 font-bold uppercase tracking-wider ${getBadgeClass(job.source)}">
                   ${job.source}
                 </span>
-                <span class="text-slate-400">${job.published_time_text}</span>
+                <span class="font-medium text-[#5C6873]">🕒 ${job.published_time_text}</span>
               </div>
-              <h2 class="text-base font-bold text-white line-clamp-2">${job.title}</h2>
-              <div class="mt-2 text-xs text-slate-400 space-y-0.5">
-                <p class="text-slate-300 font-medium">🏢 ${job.company}</p>
+              <h2 class="text-[15px] font-bold text-[#0D3878] line-clamp-2 leading-snug">${job.title}</h2>
+              <div class="mt-2 text-xs text-[#5C6873] space-y-0.5">
+                <p class="text-[#1F2937] font-semibold">🏢 ${job.company}</p>
                 <p>📍 ${job.location}</p>
               </div>
 
-              <div class="mt-4 flex items-center gap-2 pt-3 border-t border-slate-800/60">
-                <button onclick="openPreview('${job.id}')" class="flex-1 rounded-xl border border-slate-700 bg-slate-800 py-2.5 text-xs font-semibold text-slate-200 hover:bg-slate-700">
+              <div class="mt-4 flex items-center gap-2 pt-3 border-t border-gray-100">
+                <button onclick="openPreview('${job.id}')" class="flex-1 rounded-lg border border-[#0D3878]/25 bg-[#F0F5FC] py-2.5 text-xs font-bold text-[#0D3878] hover:bg-[#E1ECFA]">
                   👁️ Vista Previa
                 </button>
                 ${job.status === 'new' ? `
-                  <a href="${job.url}" target="_blank" onclick="updateStatus('${job.id}', 'applied')" class="flex-1 rounded-xl bg-emerald-500 py-2.5 text-xs font-semibold text-slate-950 text-center hover:bg-emerald-400">
+                  <a href="${job.url}" target="_blank" onclick="updateStatus('${job.id}', 'applied')" class="flex-1 rounded-lg bg-[#F36F21] py-2.5 text-xs font-bold text-white text-center shadow-sm hover:bg-[#DC5F16]">
                     🔗 Postularme
                   </a>
-                  <button onclick="updateStatus('${job.id}', 'discarded')" class="h-9 w-9 rounded-xl border border-slate-800 bg-slate-800/50 text-slate-400 hover:text-rose-400">
+                  <button onclick="updateStatus('${job.id}', 'discarded')" class="h-9 w-9 rounded-lg border border-gray-200 bg-gray-50 text-gray-400 hover:text-rose-600 hover:bg-rose-50">
                     🗑️
                   </button>
                 ` : job.status === 'applied' ? `
-                  <a href="${job.url}" target="_blank" class="flex-1 rounded-xl bg-emerald-500/10 border border-emerald-500/30 py-2.5 text-xs font-semibold text-emerald-400 text-center">
+                  <a href="${job.url}" target="_blank" class="flex-1 rounded-lg bg-emerald-50 border border-emerald-200 py-2.5 text-xs font-bold text-emerald-700 text-center">
                     ✅ Ver aviso oficial
                   </a>
                 ` : `
-                  <button onclick="updateStatus('${job.id}', 'applied')" class="flex-1 rounded-xl border border-slate-700 bg-slate-800 py-2.5 text-xs text-slate-300">
+                  <button onclick="updateStatus('${job.id}', 'applied')" class="flex-1 rounded-lg border border-gray-300 bg-white py-2.5 text-xs font-semibold text-gray-700">
                     Restaurar
                   </button>
                 `}
               </div>
             </article>
-          `;}).join('')}
+          `).join('')}
         </section>
 
         <!-- MODAL VISTA PREVIA -->
         ${state.previewJob ? `
-          <div class="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm p-0 sm:items-center sm:p-4">
-            <div class="w-full max-w-lg rounded-t-3xl sm:rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl max-h-[85vh] flex flex-col">
-              <div class="flex items-start justify-between border-b border-slate-800 pb-3">
-                <div>
-                  <span class="rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-                    (state.previewJob.source || '').toLowerCase() === 'computrabajo'
-                      ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                      : (state.previewJob.source || '').toLowerCase() === 'bumeran'
-                      ? 'bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20'
-                      : (state.previewJob.source || '').toLowerCase() === 'indeed'
-                      ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                      : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                  }">
+          <div class="fixed inset-0 z-50 flex items-end justify-center bg-[#0D3878]/40 backdrop-blur-[2px] p-0 sm:items-center sm:p-4">
+            <div class="w-full max-w-lg rounded-t-2xl sm:rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl max-h-[85vh] flex flex-col">
+              <div class="flex items-start justify-between border-b border-gray-200 pb-3">
+                <div class="pr-3">
+                  <span class="inline-block rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getBadgeClass(state.previewJob.source)}">
                     ${state.previewJob.source}
                   </span>
-                  <h2 class="mt-1 text-base font-bold text-white">${state.previewJob.title}</h2>
-                  <p class="text-xs text-slate-400 mt-0.5">${state.previewJob.company} • ${state.previewJob.location}</p>
+                  <h2 class="mt-1.5 text-base font-bold text-[#0D3878] leading-snug">${state.previewJob.title}</h2>
+                  <p class="text-xs text-[#5C6873] mt-0.5 font-medium">${state.previewJob.company} • ${state.previewJob.location}</p>
                 </div>
-                <button onclick="closePreview()" class="h-7 w-7 rounded-full bg-slate-800 text-slate-400 text-sm">✕</button>
+                <button onclick="closePreview()" class="h-8 w-8 rounded-full bg-gray-100 text-gray-500 font-bold">✕</button>
               </div>
-              <div class="my-4 overflow-y-auto text-xs text-slate-300 space-y-3">
-                <div class="rounded-xl bg-slate-950 p-4 border border-slate-800">
-                  <h3 class="font-semibold text-slate-200 mb-2">Resumen del puesto:</h3>
+              <div class="my-4 overflow-y-auto text-xs text-[#374151] space-y-3">
+                <div class="rounded-xl bg-[#F8FAFC] p-4 border border-gray-200">
+                  <h3 class="font-bold text-[#0D3878] mb-2 uppercase tracking-wide text-[11px]">Resumen del aviso</h3>
                   <p class="whitespace-pre-wrap">${state.previewJob.full_description || "Sin descripción disponible."}</p>
                 </div>
-                <p class="text-slate-400 text-[11px]">⏱️ Publicado: ${state.previewJob.published_time_text}</p>
+                <p class="text-[#5C6873] text-[11px] font-medium">⏱️ Publicado: ${state.previewJob.published_time_text}</p>
               </div>
-              <div class="pt-3 border-t border-slate-800 flex gap-2">
-                <a href="${state.previewJob.url}" target="_blank" onclick="updateStatus('${state.previewJob.id}', 'applied')" class="flex-1 rounded-xl bg-emerald-500 py-3 text-center text-xs font-bold text-slate-950 hover:bg-emerald-400 capitalize">
+              <div class="pt-3 border-t border-gray-200 flex gap-2">
+                <a href="${state.previewJob.url}" target="_blank" onclick="updateStatus('${state.previewJob.id}', 'applied')" class="flex-1 rounded-xl bg-[#F36F21] py-3 text-center text-xs font-bold text-white shadow-sm hover:bg-[#DC5F16] capitalize">
                   Ir a Postularme en ${state.previewJob.source}
                 </a>
                 ${state.previewJob.status === 'new' ? `
-                  <button onclick="updateStatus('${state.previewJob.id}', 'discarded')" class="rounded-xl border border-slate-700 bg-slate-800 px-4 text-xs font-semibold text-slate-300">
+                  <button onclick="updateStatus('${state.previewJob.id}', 'discarded')" class="rounded-xl border border-gray-300 bg-white px-4 text-xs font-bold text-gray-600">
                     Descartar
                   </button>
                 ` : ''}
@@ -269,9 +280,12 @@
           .select("*")
           .order("created_at", { ascending: false });
         if (error) throw error;
-        state.jobs = data || [];
+        const allRows = data || [];
+        const heartbeat = allRows.find(r => r.source === "__heartbeat__");
+        state.jobs = allRows.filter(r => r.source !== "__heartbeat__");
+        state.lastSyncAt = heartbeat ? heartbeat.status_updated_at : (state.jobs[0]?.created_at || null);
       } catch (err) {
-        console.error("Error al cargar:", err);
+        console.error("Error:", err);
       } finally {
         state.loading = false;
         render();
@@ -280,45 +294,30 @@
 
     async function updateStatus(jobId, newStatus) {
       state.jobs = state.jobs.map(j => j.id === jobId ? { ...j, status: newStatus } : j);
-      if (state.previewJob && state.previewJob.id === jobId) {
-        state.previewJob = null;
-      }
+      if (state.previewJob && state.previewJob.id === jobId) state.previewJob = null;
       render();
       try {
         await supabaseClient
           .from("jobs")
           .update({ status: newStatus, status_updated_at: new Date().toISOString() })
           .eq("id", jobId);
-      } catch (e) {
-        console.error(e);
+      } catch (err) {
+        console.error("Error actualizando:", err);
         fetchJobs();
       }
     }
 
-    function setTab(tab) {
-      state.activeTab = tab;
-      render();
-    }
+    function setTab(tab) { state.activeTab = tab; render(); }
+    function setSource(src) { state.selectedSource = src; render(); }
+    function openPreview(id) { state.previewJob = state.jobs.find(j => j.id === id) || null; render(); }
+    function closePreview() { state.previewJob = null; render(); }
 
-    function setSource(src) {
-      state.selectedSource = src;
-      render();
-    }
+    setInterval(() => { if (state.isAuthenticated) render(); }, 30000);
 
-    function openPreview(id) {
-      state.previewJob = state.jobs.find(j => j.id === id) || null;
-      render();
-    }
-
-    function closePreview() {
-      state.previewJob = null;
-      render();
-    }
-
-    // Inicializar
-    render();
     if (state.isAuthenticated) {
       fetchJobs();
+    } else {
+      render();
     }
   </script>
 </body>

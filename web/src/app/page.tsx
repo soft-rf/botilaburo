@@ -2,30 +2,66 @@
 
 import React, { useEffect, useState } from "react";
 import { supabase, Job } from "@/lib/supabase";
-import { 
-  Briefcase, 
-  MapPin, 
-  Clock, 
-  ExternalLink, 
-  Eye, 
-  CheckCircle2, 
-  Trash2, 
-  RefreshCw, 
-  Lock, 
-  Building2, 
-  Globe 
+import {
+  Briefcase,
+  MapPin,
+  Clock,
+  ExternalLink,
+  Eye,
+  CheckCircle2,
+  Trash2,
+  RefreshCw,
+  Lock,
+  Building2,
+  Globe,
+  Timer
 } from "lucide-react";
 
 const APP_PIN = process.env.NEXT_PUBLIC_APP_PIN || "1234";
+const SYNC_INTERVAL_MINUTES = 60;
 
 const getBadgeClass = (source: string) => {
   const s = (source || "").toLowerCase();
-  if (s === "computrabajo") return "bg-amber-500/10 text-amber-400 border border-amber-500/20";
-  if (s === "bumeran") return "bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20";
-  if (s === "indeed") return "bg-blue-500/10 text-blue-400 border border-blue-500/20";
-  if (s === "zonajobs") return "bg-rose-500/10 text-rose-400 border border-rose-500/20";
-  return "bg-slate-500/10 text-slate-400 border border-slate-500/20";
+  if (s === "computrabajo") return "bg-[#FFF3EB] text-[#D95B16] border border-[#FBD5BD]";
+  if (s === "bumeran") return "bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200";
+  if (s === "indeed") return "bg-blue-50 text-blue-700 border border-blue-200";
+  if (s === "zonajobs") return "bg-rose-50 text-rose-700 border border-rose-200";
+  return "bg-gray-100 text-gray-700 border border-gray-200";
 };
+
+function formatSyncInfo(lastSyncIso: string | null, nowMs: number): { agoText: string; nextText: string } {
+  if (!lastSyncIso) {
+    return { agoText: "Sin sincronizar aún", nextText: "Esperando primer ciclo" };
+  }
+  const syncMs = new Date(lastSyncIso).getTime();
+  if (Number.isNaN(syncMs)) {
+    return { agoText: "Sin datos", nextText: "—" };
+  }
+  const diffMin = Math.max(0, Math.floor((nowMs - syncMs) / 60000));
+
+  let agoText = "";
+  if (diffMin < 1) {
+    agoText = "Actualizado recién";
+  } else if (diffMin < 60) {
+    agoText = `Actualizado hace ${diffMin} min`;
+  } else {
+    const hrs = Math.floor(diffMin / 60);
+    const rem = diffMin % 60;
+    agoText = rem > 0 ? `Actualizado hace ${hrs}h ${rem}m` : `Actualizado hace ${hrs}h`;
+  }
+
+  const remaining = SYNC_INTERVAL_MINUTES - diffMin;
+  let nextText = "";
+  if (remaining > 1) {
+    nextText = `Próxima en ${remaining} min`;
+  } else if (remaining === 1) {
+    nextText = "Próxima en 1 min";
+  } else {
+    nextText = "Próxima actualización inminente";
+  }
+
+  return { agoText, nextText };
+}
 
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -33,6 +69,8 @@ export default function Home() {
   const [pinError, setPinError] = useState<boolean>(false);
 
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
+  const [nowMs, setNowMs] = useState<number>(Date.now());
   const [loading, setLoading] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<"new" | "applied" | "discarded">("new");
   const [selectedSource, setSelectedSource] = useState<string>("all");
@@ -44,6 +82,12 @@ export default function Home() {
     if (savedAuth === "true") {
       setIsAuthenticated(true);
     }
+  }, []);
+
+  // Actualizar reloj local cada 30 segundos para refrescar el contador de minutos
+  useEffect(() => {
+    const timer = setInterval(() => setNowMs(Date.now()), 30000);
+    return () => clearInterval(timer);
   }, []);
 
   const handlePinSubmit = (e: React.FormEvent) => {
@@ -58,7 +102,7 @@ export default function Home() {
     }
   };
 
-  // 2. Cargar ofertas desde Supabase
+  // 2. Cargar ofertas y heartbeat de sincronización desde Supabase
   const fetchJobs = async () => {
     setLoading(true);
     try {
@@ -68,7 +112,22 @@ export default function Home() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setJobs(data || []);
+      const allRows: Job[] = data || [];
+
+      // Separar el registro de heartbeat del listado real de ofertas
+      const heartbeatRow = allRows.find((r) => r.source === "__heartbeat__");
+      const realJobs = allRows.filter((r) => r.source !== "__heartbeat__");
+
+      setJobs(realJobs);
+
+      if (heartbeatRow?.status_updated_at) {
+        setLastSyncAt(heartbeatRow.status_updated_at);
+      } else if (realJobs.length > 0) {
+        setLastSyncAt(realJobs[0].created_at);
+      } else {
+        setLastSyncAt(null);
+      }
+      setNowMs(Date.now());
     } catch (err) {
       console.error("Error al cargar ofertas:", err);
     } finally {
@@ -114,28 +173,31 @@ export default function Home() {
     const matchesTab = job.status === activeTab;
     const matchesSource =
       selectedSource === "all" ||
-      job.source.toLowerCase() === selectedSource.toLowerCase();
+      (job.source || "").toLowerCase() === selectedSource.toLowerCase();
     return matchesTab && matchesSource;
   });
 
   const countNew = jobs.filter((j) => j.status === "new").length;
   const countApplied = jobs.filter((j) => j.status === "applied").length;
   const countDiscarded = jobs.filter((j) => j.status === "discarded").length;
+  const syncInfo = formatSyncInfo(lastSyncAt, nowMs);
 
-  // Pantalla de bloqueo si no tiene el PIN
+  // Pantalla de bloqueo estilo Computrabajo
   if (!isAuthenticated) {
     return (
-      <main className="flex min-h-screen items-center justify-center p-4">
-        <div className="w-full max-w-sm rounded-2xl border border-slate-800 bg-slate-900/80 p-8 shadow-2xl backdrop-blur-xl">
-          <div className="flex flex-col items-center text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-400">
+      <main className="flex min-h-screen items-center justify-center bg-[#F3F5F8] p-4">
+        <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg">
+          <div className="bg-[#0D3878] px-6 py-7 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 text-white">
               <Lock className="h-7 w-7" />
             </div>
-            <h1 className="mt-4 text-2xl font-bold tracking-tight text-white">Job Hunter Bot</h1>
-            <p className="mt-1 text-sm text-slate-400">Ingresa tu PIN de acceso personal</p>
+            <h1 className="mt-4 text-2xl font-bold tracking-tight text-white">
+              Job<span className="text-[#F36F21]">Hunter</span>
+            </h1>
+            <p className="mt-1 text-xs text-blue-100">Ingresa tu PIN de acceso personal</p>
           </div>
 
-          <form onSubmit={handlePinSubmit} className="mt-6 space-y-4">
+          <form onSubmit={handlePinSubmit} className="p-6 space-y-4">
             <div>
               <input
                 type="password"
@@ -145,20 +207,20 @@ export default function Home() {
                 value={pinInput}
                 onChange={(e) => setPinInput(e.target.value)}
                 placeholder="Ingresar PIN"
-                className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-center text-2xl tracking-widest text-white focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="w-full rounded-xl border border-gray-300 bg-[#F8FAFC] px-4 py-3 text-center text-2xl tracking-widest text-[#0D3878] focus:border-[#0D3878] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0D3878]/20"
                 autoFocus
               />
               {pinError && (
-                <p className="mt-2 text-center text-xs text-rose-400 font-medium">
+                <p className="mt-2 text-center text-xs text-rose-600 font-medium">
                   PIN incorrecto. Inténtalo de nuevo.
                 </p>
               )}
             </div>
             <button
               type="submit"
-              className="w-full rounded-xl bg-emerald-500 py-3 font-semibold text-slate-950 transition hover:bg-emerald-400 active:scale-[0.98]"
+              className="w-full rounded-xl bg-[#F36F21] py-3 font-semibold text-white shadow-sm transition hover:bg-[#DC5F16] active:scale-[0.98]"
             >
-              Desbloquear
+              Ingresar
             </button>
           </form>
         </div>
@@ -167,41 +229,55 @@ export default function Home() {
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-md pb-24 text-slate-100">
-      {/* HEADER SUPERIOR */}
-      <header className="sticky top-0 z-30 border-b border-slate-800/80 bg-slate-950/80 px-4 py-3 backdrop-blur-md">
+    <main className="mx-auto min-h-screen max-w-md bg-[#F3F5F8] pb-24 text-[#1F2937]">
+      {/* HEADER ESTILO COMPUTRABAJO */}
+      <header className="sticky top-0 z-30 bg-[#0D3878] px-4 pt-3.5 pb-3 text-white shadow-md">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
-              <Briefcase className="h-4 w-4" />
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F36F21] text-white shadow-sm">
+              <Briefcase className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-base font-bold leading-none text-white">Job Hunter</h1>
-              <div className="flex items-center gap-1.5 mt-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">En tiempo real</span>
-              </div>
+              <h1 className="text-lg font-extrabold leading-none tracking-tight text-white">
+                Job<span className="text-[#FF8A3D]">Hunter</span>
+              </h1>
+              <span className="text-[11px] text-blue-200 font-medium">
+                Ofertas recientes (máx. 2h)
+              </span>
             </div>
           </div>
           <button
             onClick={fetchJobs}
             disabled={loading}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-slate-300 hover:text-white active:scale-95 disabled:opacity-50"
+            title="Actualizar ahora"
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 text-white transition hover:bg-white/25 active:scale-95 disabled:opacity-50"
           >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin text-emerald-400" : ""}`} />
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
 
+        {/* BARRA DE ESTADO DE SINCRONIZACIÓN DE BASE DE DATOS */}
+        <div className="mt-3 flex items-center justify-between rounded-lg bg-[#082654]/80 px-3 py-1.5 text-[11px] text-blue-100 border border-white/10">
+          <span className="flex items-center gap-1.5 font-medium">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            {syncInfo.agoText}
+          </span>
+          <span className="flex items-center gap-1 font-semibold text-[#FFB27D]">
+            <Timer className="h-3.5 w-3.5" />
+            {syncInfo.nextText}
+          </span>
+        </div>
+
         {/* SELECTOR DE FUENTE (Portales) */}
-        <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1 text-xs scrollbar-none">
+        <div className="mt-3 flex gap-1.5 overflow-x-auto pb-0.5 text-xs scrollbar-none">
           {["all", "computrabajo", "bumeran", "indeed", "zonajobs"].map((src) => (
             <button
               key={src}
               onClick={() => setSelectedSource(src)}
-              className={`rounded-full px-3 py-1 font-medium capitalize transition ${
+              className={`whitespace-nowrap rounded-full px-3.5 py-1.5 font-semibold capitalize transition ${
                 selectedSource === src
-                  ? "bg-slate-200 text-slate-950"
-                  : "bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800"
+                  ? "bg-white text-[#0D3878] shadow-sm"
+                  : "bg-white/10 text-blue-100 hover:bg-white/20"
               }`}
             >
               {src === "all" ? "Todas las fuentes" : src}
@@ -211,53 +287,80 @@ export default function Home() {
       </header>
 
       {/* PESTAÑAS DE ESTADO (Nuevas, Postuladas, Descartadas) */}
-      <div className="flex border-b border-slate-800/80 bg-slate-900/40 px-2 text-xs font-semibold">
+      <div className="flex border-b border-gray-200 bg-white px-2 text-xs font-bold shadow-sm">
         <button
           onClick={() => setActiveTab("new")}
-          className={`flex-1 border-b-2 py-3 text-center transition ${
+          className={`flex-1 border-b-[3px] py-3 text-center transition ${
             activeTab === "new"
-              ? "border-emerald-500 text-emerald-400"
-              : "border-transparent text-slate-400 hover:text-slate-300"
+              ? "border-[#F36F21] text-[#0D3878]"
+              : "border-transparent text-gray-500 hover:text-gray-700"
           }`}
         >
-          🔥 Nuevas ({countNew})
+          Nuevas{" "}
+          <span
+            className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] ${
+              activeTab === "new"
+                ? "bg-[#FFF3EB] text-[#D95B16]"
+                : "bg-gray-100 text-gray-500"
+            }`}
+          >
+            {countNew}
+          </span>
         </button>
         <button
           onClick={() => setActiveTab("applied")}
-          className={`flex-1 border-b-2 py-3 text-center transition ${
+          className={`flex-1 border-b-[3px] py-3 text-center transition ${
             activeTab === "applied"
-              ? "border-emerald-500 text-emerald-400"
-              : "border-transparent text-slate-400 hover:text-slate-300"
+              ? "border-[#F36F21] text-[#0D3878]"
+              : "border-transparent text-gray-500 hover:text-gray-700"
           }`}
         >
-          ✅ Postuladas ({countApplied})
+          Postuladas{" "}
+          <span
+            className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] ${
+              activeTab === "applied"
+                ? "bg-emerald-50 text-emerald-700"
+                : "bg-gray-100 text-gray-500"
+            }`}
+          >
+            {countApplied}
+          </span>
         </button>
         <button
           onClick={() => setActiveTab("discarded")}
-          className={`flex-1 border-b-2 py-3 text-center transition ${
+          className={`flex-1 border-b-[3px] py-3 text-center transition ${
             activeTab === "discarded"
-              ? "border-emerald-500 text-emerald-400"
-              : "border-transparent text-slate-400 hover:text-slate-300"
+              ? "border-[#F36F21] text-[#0D3878]"
+              : "border-transparent text-gray-500 hover:text-gray-700"
           }`}
         >
-          🗑️ Descartadas ({countDiscarded})
+          Descartadas{" "}
+          <span
+            className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] ${
+              activeTab === "discarded"
+                ? "bg-gray-200 text-gray-700"
+                : "bg-gray-100 text-gray-500"
+            }`}
+          >
+            {countDiscarded}
+          </span>
         </button>
       </div>
 
       {/* LISTADO DE OFERTAS */}
-      <section className="p-4 space-y-3">
+      <section className="p-3.5 space-y-3">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-16 text-slate-500">
-            <RefreshCw className="h-6 w-6 animate-spin text-emerald-500" />
-            <p className="mt-3 text-xs">Cargando oportunidades...</p>
+          <div className="flex flex-col items-center justify-center py-16 text-gray-500">
+            <RefreshCw className="h-6 w-6 animate-spin text-[#0D3878]" />
+            <p className="mt-3 text-xs font-medium">Buscando ofertas recientes...</p>
           </div>
         ) : filteredJobs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-800 py-16 text-center text-slate-500">
-            <Briefcase className="h-8 w-8 text-slate-600 mb-2" />
-            <p className="text-sm font-medium text-slate-400">No hay ofertas en esta sección</p>
-            <p className="text-xs text-slate-500 mt-1 max-w-[240px]">
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-white py-14 px-6 text-center text-gray-500">
+            <Briefcase className="h-9 w-9 text-gray-300 mb-2" />
+            <p className="text-sm font-bold text-[#0D3878]">No hay ofertas en esta sección</p>
+            <p className="text-xs text-gray-500 mt-1 max-w-[260px]">
               {activeTab === "new"
-                ? "El scraper buscará nuevas ofertas en su próxima corrida programada."
+                ? "El bot buscará nuevas vacantes automáticamente en el próximo ciclo."
                 : "Las ofertas aquí se limpian automáticamente tras 24 horas."}
             </p>
           </div>
@@ -265,41 +368,45 @@ export default function Home() {
           filteredJobs.map((job) => (
             <article
               key={job.id}
-              className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-4 shadow-sm transition hover:border-slate-700 backdrop-blur-sm"
+              className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-[#0D3878]/40 hover:shadow-md"
             >
               {/* CABECERA DE LA TARJETA */}
               <div className="flex items-center justify-between text-[11px] mb-2">
-                <span className={`flex items-center gap-1 rounded-md px-2 py-0.5 font-semibold uppercase tracking-wider ${getBadgeClass(job.source)}`}>
+                <span
+                  className={`flex items-center gap-1 rounded-md px-2 py-0.5 font-bold uppercase tracking-wider ${getBadgeClass(
+                    job.source
+                  )}`}
+                >
                   <Globe className="h-3 w-3" />
                   {job.source}
                 </span>
-                <span className="flex items-center gap-1 text-slate-400">
-                  <Clock className="h-3 w-3" />
+                <span className="flex items-center gap-1 font-medium text-[#5C6873]">
+                  <Clock className="h-3 w-3 text-[#0D3878]/70" />
                   {job.published_time_text}
                 </span>
               </div>
 
               {/* TÍTULO Y EMPRESA */}
-              <h2 className="text-base font-bold text-white line-clamp-2 leading-snug">
+              <h2 className="text-[15px] font-bold text-[#0D3878] line-clamp-2 leading-snug">
                 {job.title}
               </h2>
-              <div className="mt-2 flex flex-col gap-1 text-xs text-slate-400">
-                <span className="flex items-center gap-1.5 font-medium text-slate-300">
-                  <Building2 className="h-3.5 w-3.5 text-slate-500 flex-shrink-0" />
+              <div className="mt-2 flex flex-col gap-1 text-xs text-[#5C6873]">
+                <span className="flex items-center gap-1.5 font-semibold text-[#1F2937]">
+                  <Building2 className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
                   {job.company}
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5 text-slate-500 flex-shrink-0" />
+                  <MapPin className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
                   {job.location}
                 </span>
               </div>
 
               {/* ACCIONES DE LA TARJETA */}
-              <div className="mt-4 flex items-center gap-2 pt-3 border-t border-slate-800/60">
+              <div className="mt-4 flex items-center gap-2 pt-3 border-t border-gray-100">
                 {/* Botón Vista Previa */}
                 <button
                   onClick={() => setPreviewJob(job)}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800/80 py-2.5 text-xs font-semibold text-slate-200 transition hover:bg-slate-700 active:scale-95"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#0D3878]/25 bg-[#F0F5FC] py-2.5 text-xs font-bold text-[#0D3878] transition hover:bg-[#E1ECFA] active:scale-95"
                 >
                   <Eye className="h-3.5 w-3.5" />
                   Vista Previa
@@ -313,7 +420,7 @@ export default function Home() {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => updateJobStatus(job.id, "applied")}
-                      className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-500 py-2.5 text-xs font-semibold text-slate-950 transition hover:bg-emerald-400 active:scale-95"
+                      className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#F36F21] py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#DC5F16] active:scale-95"
                     >
                       <ExternalLink className="h-3.5 w-3.5" />
                       Postularme
@@ -321,7 +428,7 @@ export default function Home() {
                     <button
                       onClick={() => updateJobStatus(job.id, "discarded")}
                       title="Descartar"
-                      className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-800 bg-slate-800/50 text-slate-400 hover:text-rose-400 transition active:scale-95"
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-400 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 transition active:scale-95"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -333,7 +440,7 @@ export default function Home() {
                     href={job.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 py-2.5 text-xs font-semibold text-emerald-400"
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 py-2.5 text-xs font-bold text-emerald-700"
                   >
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     Ver aviso oficial
@@ -343,7 +450,7 @@ export default function Home() {
                 {job.status === "discarded" && (
                   <button
                     onClick={() => updateJobStatus(job.id, "applied")}
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800 py-2.5 text-xs font-medium text-slate-300"
+                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white py-2.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
                   >
                     Restaurar a Postuladas
                   </button>
@@ -356,54 +463,64 @@ export default function Home() {
 
       {/* MODAL / DRAWER DE VISTA PREVIA COMPLETA */}
       {previewJob && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm p-0 sm:items-center sm:p-4">
-          <div className="w-full max-w-lg rounded-t-3xl sm:rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl max-h-[85vh] flex flex-col animate-in slide-in-from-bottom duration-200">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-[#0D3878]/40 backdrop-blur-[2px] p-0 sm:items-center sm:p-4">
+          <div className="w-full max-w-lg rounded-t-2xl sm:rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl max-h-[85vh] flex flex-col">
             {/* Header del Modal */}
-            <div className="flex items-start justify-between border-b border-slate-800 pb-3">
-              <div>
-                <span className={`rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${getBadgeClass(previewJob.source)}`}>
+            <div className="flex items-start justify-between border-b border-gray-200 pb-3">
+              <div className="pr-3">
+                <span
+                  className={`inline-block rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getBadgeClass(
+                    previewJob.source
+                  )}`}
+                >
                   {previewJob.source}
                 </span>
-                <h2 className="mt-1 text-base font-bold text-white">{previewJob.title}</h2>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <h2 className="mt-1.5 text-base font-bold text-[#0D3878] leading-snug">
+                  {previewJob.title}
+                </h2>
+                <p className="text-xs text-[#5C6873] mt-0.5 font-medium">
                   {previewJob.company} • {previewJob.location}
                 </p>
               </div>
               <button
                 onClick={() => setPreviewJob(null)}
-                className="h-7 w-7 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center"
+                className="h-8 w-8 flex-shrink-0 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-800 flex items-center justify-center font-bold"
               >
                 ✕
               </button>
             </div>
 
             {/* Contenido / Requisitos */}
-            <div className="my-4 overflow-y-auto pr-1 text-xs text-slate-300 leading-relaxed space-y-3">
-              <div className="rounded-xl bg-slate-950 p-4 border border-slate-800/80">
-                <h3 className="font-semibold text-slate-200 mb-2 text-xs">Resumen del aviso:</h3>
-                <p className="whitespace-pre-wrap">{previewJob.full_description || "Sin descripción disponible."}</p>
+            <div className="my-4 overflow-y-auto pr-1 text-xs text-[#374151] leading-relaxed space-y-3">
+              <div className="rounded-xl bg-[#F8FAFC] p-4 border border-gray-200">
+                <h3 className="font-bold text-[#0D3878] mb-2 text-xs uppercase tracking-wide">
+                  Resumen del aviso
+                </h3>
+                <p className="whitespace-pre-wrap">
+                  {previewJob.full_description || "Sin descripción disponible."}
+                </p>
               </div>
-              <div className="flex items-center gap-2 text-slate-400 text-[11px]">
-                <Clock className="h-3 w-3" />
-                <span>Tiempo de publicación: {previewJob.published_time_text}</span>
+              <div className="flex items-center gap-2 text-[#5C6873] text-[11px] font-medium">
+                <Clock className="h-3.5 w-3.5 text-[#0D3878]" />
+                <span>Publicado: {previewJob.published_time_text}</span>
               </div>
             </div>
 
             {/* Acciones del Modal */}
-            <div className="pt-3 border-t border-slate-800 flex gap-2">
+            <div className="pt-3 border-t border-gray-200 flex gap-2">
               <a
                 href={previewJob.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => updateJobStatus(previewJob.id, "applied")}
-                className="flex-1 rounded-xl bg-emerald-500 py-3 text-center text-xs font-bold text-slate-950 hover:bg-emerald-400 transition capitalize"
+                className="flex-1 rounded-xl bg-[#F36F21] py-3 text-center text-xs font-bold text-white shadow-sm hover:bg-[#DC5F16] transition capitalize"
               >
                 Ir a Postularme en {previewJob.source}
               </a>
               {previewJob.status === "new" && (
                 <button
                   onClick={() => updateJobStatus(previewJob.id, "discarded")}
-                  className="rounded-xl border border-slate-700 bg-slate-800 px-4 text-xs font-semibold text-slate-300 hover:bg-slate-700 transition"
+                  className="rounded-xl border border-gray-300 bg-white px-4 text-xs font-bold text-gray-600 hover:bg-gray-50 transition"
                 >
                   Descartar
                 </button>

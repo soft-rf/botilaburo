@@ -2,6 +2,7 @@
 
 import logging
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
 
@@ -95,3 +96,40 @@ class JobDatabase:
             logger.error("Error al guardar ofertas en Supabase: %s", str(e), exc_info=True)
 
         return saved_count
+
+    def update_heartbeat(self, new_offers_count: int = 0) -> bool:
+        """Registra la marca de tiempo de la última sincronización completada por el bot.
+
+        Args:
+            new_offers_count: Cantidad de ofertas nuevas encontradas en el ciclo.
+
+        Returns:
+            True si se actualizó el heartbeat correctamente; False en caso contrario.
+        """
+        if not self.is_connected():
+            return False
+
+        now_iso = datetime.now(timezone.utc).isoformat()
+        record = {
+            "source": "__heartbeat__",
+            "external_id": "last_sync",
+            "title": "System Heartbeat",
+            "company": "JobHunterBot",
+            "location": "System",
+            "published_time_text": f"{new_offers_count} nuevas",
+            "url": "https://system.local/heartbeat",
+            "full_description": f"Última ejecución completada: {now_iso}",
+            "status": "discarded",
+            "status_updated_at": now_iso,
+        }
+
+        try:
+            self.client.table("jobs").upsert(
+                record,
+                on_conflict="source, external_id"
+            ).execute()
+            logger.info("Heartbeat de sincronización actualizado en Supabase (%s).", now_iso)
+            return True
+        except Exception as e:
+            logger.error("Error al actualizar heartbeat en Supabase: %s", str(e))
+            return False

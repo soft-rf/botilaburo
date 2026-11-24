@@ -183,6 +183,10 @@ def main(headless: bool = True) -> None:
     else:
         logger.info("No se encontraron ofertas dentro de la ventana de 2 horas en esta corrida.")
 
+    # Registrar marca de tiempo de la última ejecución en Supabase (para contador en la web)
+    if db.is_connected():
+        db.update_heartbeat(len(all_fresh_offers))
+
     logger.info("=== Ciclo de búsqueda finalizado exitosamente ===")
 
 
