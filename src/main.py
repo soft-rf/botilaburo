@@ -143,8 +143,8 @@ def main(headless: bool = True) -> None:
         # 1. Filtro geográfico estricto (CABA, San Martín, Tres de Febrero, Zona Norte, Remoto)
         valid_loc_offers = [o for o in extracted_offers if is_allowed_location(o.location)]
 
-        # 2. Filtro temporal de las 2 horas (120 minutos)
-        fresh_offers = [o for o in valid_loc_offers if is_within_time_window(o.published_time_text, max_minutes=120)]
+        # 2. Filtro temporal de las 24 horas (1440 minutos)
+        fresh_offers = [o for o in valid_loc_offers if is_within_time_window(o.published_time_text, max_minutes=1440)]
 
         # 3. Filtro semántico de palabras clave (inclusión de perfiles y exclusión de telemarketers/ventas/seniors)
         relevant_offers: List[JobOffer] = []
@@ -159,7 +159,7 @@ def main(headless: bool = True) -> None:
         new_offers = deduplicator.filter_new_offers(relevant_offers)
 
         logger.info(
-            "[%s] %d encontradas | %d en zona | %d < 2h | %d relevantes | %d nuevas a guardar",
+            "[%s] %d encontradas | %d en zona | %d < 24h | %d relevantes | %d nuevas a guardar",
             category, len(extracted_offers), len(valid_loc_offers), len(fresh_offers), len(relevant_offers), len(new_offers)
         )
 
@@ -181,7 +181,7 @@ def main(headless: bool = True) -> None:
             synced = db.save_jobs(all_fresh_offers)
             logger.info("Sincronizadas %d ofertas con la base de datos Supabase en la nube.", synced)
     else:
-        logger.info("No se encontraron ofertas dentro de la ventana de 2 horas en esta corrida.")
+        logger.info("No se encontraron ofertas dentro de la ventana de 24 horas en esta corrida.")
 
     # Registrar marca de tiempo de la última ejecución en Supabase (para contador en la web)
     if db.is_connected():

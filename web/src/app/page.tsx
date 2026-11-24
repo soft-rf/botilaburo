@@ -315,7 +315,7 @@ export default function Home() {
                 Agarra la <span className="text-emerald-400">pala</span>
               </h1>
               <span className="text-[11px] text-blue-200 font-medium">
-                Ofertas recientes (máx. 2h)
+                Ofertas recientes (máx. 24h)
               </span>
             </div>
           </div>
