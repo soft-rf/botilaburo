@@ -7,7 +7,6 @@ from typing import List, Optional
 from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
-from playwright.sync_api import sync_playwright, Browser, Page
 
 from src.models.job import JobOffer
 from src.scrapers.base import BaseScraper
@@ -20,9 +19,9 @@ class IndeedScraper(BaseScraper):
 
     BASE_DOMAIN = "https://ar.indeed.com"
 
-    def __init__(self, headless: bool = False) -> None:
-        """Inicializa el scraper de Indeed con modo visual o headless."""
-        super().__init__(headless=headless)
+    def __init__(self, headless: bool = True) -> None:
+        """Inicializa el scraper de Indeed (sin bloqueo de assets para evitar filtros anti-bot)."""
+        super().__init__(headless=headless, block_assets=False)
 
     def extract(self, url: str) -> List[JobOffer]:
         """Extrae ofertas de empleo desde una URL de búsqueda de Indeed Argentina.
@@ -37,35 +36,9 @@ class IndeedScraper(BaseScraper):
         self.logger.info("Iniciando extracción en Indeed: %s", url)
 
         try:
-            with sync_playwright() as p:
-                browser: Browser = p.chromium.launch(
-                    headless=self.headless,
-                    args=[
-                        "--disable-blink-features=AutomationControlled",
-                        "--no-sandbox",
-                    ],
-                )
-                context = browser.new_context(
-                    user_agent=(
-                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                        "AppleWebKit/537.36 (KHTML, like Gecko) "
-                        "Chrome/124.0.0.0 Safari/537.36"
-                    ),
-                    viewport={"width": 1280, "height": 800},
-                    locale="es-419",
-                )
-                page: Page = context.new_page()
-
-                # Carga de página con timeout de 30s
-                page.goto(url, wait_until="domcontentloaded", timeout=30000)
-                page.wait_for_timeout(3000)
-
-                content = page.content()
-                browser.close()
-
-                offers = self._parse_html(content)
-                self.logger.info("Se extrajeron %d ofertas de Indeed.", len(offers))
-
+            content = self._fetch_html(url, wait_ms=2500)
+            offers = self._parse_html(content)
+            self.logger.info("Se extrajeron %d ofertas de Indeed.", len(offers))
         except Exception as e:
             self.logger.error("Error durante la extracción en Indeed: %s", str(e), exc_info=True)
 

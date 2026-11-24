@@ -6,7 +6,6 @@ from typing import List, Optional
 from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
-from playwright.sync_api import sync_playwright, Browser, Page
 
 from src.models.job import JobOffer
 from src.scrapers.base import BaseScraper
@@ -19,7 +18,7 @@ class BumeranScraper(BaseScraper):
 
     BASE_DOMAIN = "https://www.bumeran.com.ar"
 
-    def __init__(self, headless: bool = False) -> None:
+    def __init__(self, headless: bool = True) -> None:
         """Inicializa el scraper de Bumeran con modo visual o headless."""
         super().__init__(headless=headless)
 
@@ -36,31 +35,9 @@ class BumeranScraper(BaseScraper):
         self.logger.info("Iniciando extracción en Bumeran: %s", url)
 
         try:
-            with sync_playwright() as p:
-                browser: Browser = p.chromium.launch(
-                    headless=self.headless,
-                    args=["--disable-blink-features=AutomationControlled"]
-                )
-                context = browser.new_context(
-                    user_agent=(
-                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                        "AppleWebKit/537.36 (KHTML, like Gecko) "
-                        "Chrome/124.0.0.0 Safari/537.36"
-                    ),
-                    viewport={"width": 1280, "height": 800}
-                )
-                page: Page = context.new_page()
-
-                # Carga de página con timeout prudente
-                page.goto(url, wait_until="domcontentloaded", timeout=30000)
-                page.wait_for_timeout(3000)  # Breve pausa para asegurar renderizado SPA
-
-                content = page.content()
-                browser.close()
-
-                offers = self._parse_html(content)
-                self.logger.info("Se extrajeron %d ofertas de Bumeran.", len(offers))
-
+            content = self._fetch_html(url, wait_ms=2200)
+            offers = self._parse_html(content)
+            self.logger.info("Se extrajeron %d ofertas de Bumeran.", len(offers))
         except Exception as e:
             self.logger.error("Error durante la extracción en Bumeran: %s", str(e), exc_info=True)
 

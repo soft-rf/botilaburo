@@ -124,68 +124,78 @@ def main(headless: bool = True) -> None:
         "zonajobs": ZonaJobsScraper(headless=headless)
     }
 
-    all_fresh_offers: List[JobOffer] = []
-
+    # Agrupar búsquedas por portal para reutilizar el navegador (1 instancia por portal)
+    targets_by_portal: Dict[str, List[dict]] = {}
     for target in search_targets:
-        category = target.get("category", "General")
-        url = target.get("url", "")
-        is_general = target.get("type") == "general"
-        portal = target.get("portal", "computrabajo")
+        portal_name = target.get("portal", "computrabajo")
+        targets_by_portal.setdefault(portal_name, []).append(target)
 
+    total_new_offers = 0
+
+    for portal, portal_targets in targets_by_portal.items():
         scraper = scrapers.get(portal)
         if not scraper:
             logger.warning("No hay scraper registrado para el portal '%s'. Omitiendo.", portal)
             continue
 
-        logger.info("--> Escaneando [%s]: '%s' (tipo: %s)", portal.upper(), category, "General" if is_general else "Específica")
-        extracted_offers = scraper.extract(url)
+        portal_new_offers: List[JobOffer] = []
+        logger.info("=== Abriendo sesión optimizada para [%s] (%d búsquedas) ===", portal.upper(), len(portal_targets))
 
-        # 1. Filtro geográfico estricto (CABA, San Martín, Tres de Febrero, Zona Norte, Remoto)
-        valid_loc_offers = [o for o in extracted_offers if is_allowed_location(o.location)]
+        # Reutiliza el mismo navegador Chromium para todas las URLs de este portal
+        with scraper:
+            for target in portal_targets:
+                category = target.get("category", "General")
+                url = target.get("url", "")
+                is_general = target.get("type") == "general"
 
-        # 2. Filtro temporal de las 24 horas (1440 minutos)
-        fresh_offers = [o for o in valid_loc_offers if is_within_time_window(o.published_time_text, max_minutes=1440)]
+                logger.info("--> Escaneando [%s]: '%s' (tipo: %s)", portal.upper(), category, "General" if is_general else "Específica")
+                extracted_offers = scraper.extract(url)
 
-        # 3. Filtro semántico de palabras clave (inclusión de perfiles y exclusión de telemarketers/ventas/seniors)
-        relevant_offers: List[JobOffer] = []
-        for o in fresh_offers:
-            is_rel, reason = keyword_filter.is_relevant(o.title, o.description, is_general_search=is_general)
-            if is_rel:
-                relevant_offers.append(o)
-            else:
-                logger.info("  [DESCARTADA] %s -> %s", o.title, reason)
+                # 1. Filtro geográfico estricto (CABA, San Martín, Tres de Febrero, Zona Norte, Remoto)
+                valid_loc_offers = [o for o in extracted_offers if is_allowed_location(o.location)]
 
-        # 4. Filtro de duplicados (evita las ya vistas en las últimas 24 horas)
-        new_offers = deduplicator.filter_new_offers(relevant_offers)
+                # 2. Filtro temporal de las 24 horas (1440 minutos)
+                fresh_offers = [o for o in valid_loc_offers if is_within_time_window(o.published_time_text, max_minutes=1440)]
 
-        logger.info(
-            "[%s] %d encontradas | %d en zona | %d < 24h | %d relevantes | %d nuevas a guardar",
-            category, len(extracted_offers), len(valid_loc_offers), len(fresh_offers), len(relevant_offers), len(new_offers)
-        )
+                # 3. Filtro semántico de palabras clave (inclusión de perfiles y exclusión de términos no deseados)
+                relevant_offers: List[JobOffer] = []
+                for o in fresh_offers:
+                    is_rel, reason = keyword_filter.is_relevant(o.title, o.description, is_general_search=is_general)
+                    if is_rel:
+                        relevant_offers.append(o)
+                    else:
+                        logger.info("  [DESCARTADA] %s -> %s", o.title, reason)
 
-        # Mostrar detalle de las ofertas aceptadas
-        for offer in new_offers:
-            logger.info("  [ACEPTADA] %s | %s | %s | %s", offer.title, offer.company, offer.location, offer.published_time_text)
-            logger.info("    Link directo: %s", offer.url)
+                # 4. Filtro de duplicados (evita las ya vistas en las últimas 24 horas)
+                new_offers = deduplicator.filter_new_offers(relevant_offers)
 
-        all_fresh_offers.extend(new_offers)
+                logger.info(
+                    "[%s] %d encontradas | %d en zona | %d < 24h | %d relevantes | %d nuevas a guardar",
+                    category, len(extracted_offers), len(valid_loc_offers), len(fresh_offers), len(relevant_offers), len(new_offers)
+                )
 
-    # Resumen y guardado local y en la nube
-    if all_fresh_offers:
-        logger.info("Total de ofertas que superaron todos los filtros: %d", len(all_fresh_offers))
-        save_offers_to_csv(all_fresh_offers, output_csv)
-        logger.info("Archivo CSV actualizado en: %s", output_csv)
+                for offer in new_offers:
+                    logger.info("  [ACEPTADA] %s | %s | %s | %s", offer.title, offer.company, offer.location, offer.published_time_text)
+                    logger.info("    Link directo: %s", offer.url)
 
-        # Sincronización en la nube (Supabase)
-        if db.is_connected():
-            synced = db.save_jobs(all_fresh_offers)
-            logger.info("Sincronizadas %d ofertas con la base de datos Supabase en la nube.", synced)
+                portal_new_offers.extend(new_offers)
+
+        # Guardado progresivo apenas termina cada portal (sin esperar al resto)
+        if portal_new_offers:
+            total_new_offers += len(portal_new_offers)
+            save_offers_to_csv(portal_new_offers, output_csv)
+            if db.is_connected():
+                synced = db.save_jobs(portal_new_offers)
+                logger.info("[%s] Sincronizadas %d ofertas nuevas en Supabase.", portal.upper(), synced)
+
+    if total_new_offers > 0:
+        logger.info("Total de ofertas nuevas guardadas en este ciclo: %d", total_new_offers)
     else:
-        logger.info("No se encontraron ofertas dentro de la ventana de 24 horas en esta corrida.")
+        logger.info("No se encontraron ofertas nuevas dentro de la ventana de 24 horas en esta corrida.")
 
     # Registrar marca de tiempo de la última ejecución en Supabase (para contador en la web)
     if db.is_connected():
-        db.update_heartbeat(len(all_fresh_offers))
+        db.update_heartbeat(total_new_offers)
 
     logger.info("=== Ciclo de búsqueda finalizado exitosamente ===")
 

@@ -6,7 +6,6 @@ from typing import List
 from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
-from playwright.sync_api import sync_playwright, Browser, Page
 
 from src.models.job import JobOffer
 from src.scrapers.base import BaseScraper
@@ -36,35 +35,9 @@ class ZonaJobsScraper(BaseScraper):
         self.logger.info("Iniciando extracción en ZonaJobs: %s", url)
 
         try:
-            with sync_playwright() as p:
-                browser: Browser = p.chromium.launch(
-                    headless=self.headless,
-                    args=[
-                        "--disable-blink-features=AutomationControlled",
-                        "--no-sandbox",
-                    ],
-                )
-                context = browser.new_context(
-                    user_agent=(
-                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                        "AppleWebKit/537.36 (KHTML, like Gecko) "
-                        "Chrome/124.0.0.0 Safari/537.36"
-                    ),
-                    viewport={"width": 1280, "height": 800},
-                    locale="es-419",
-                )
-                page: Page = context.new_page()
-
-                # Carga de página con timeout de 30 segundos
-                page.goto(url, wait_until="domcontentloaded", timeout=30000)
-                page.wait_for_timeout(3000)  # Pausa para renderizado dinámico de la SPA
-
-                content = page.content()
-                browser.close()
-
-                offers = self._parse_html(content)
-                self.logger.info("Se extrajeron %d ofertas de ZonaJobs.", len(offers))
-
+            content = self._fetch_html(url, wait_ms=2200)
+            offers = self._parse_html(content)
+            self.logger.info("Se extrajeron %d ofertas de ZonaJobs.", len(offers))
         except Exception as e:
             self.logger.error("Error durante la extracción en ZonaJobs: %s", str(e), exc_info=True)
 
