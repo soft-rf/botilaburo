@@ -14,7 +14,9 @@ import {
   Lock,
   Building2,
   Globe,
-  Timer
+  Timer,
+  CheckSquare,
+  Square
 } from "lucide-react";
 
 const APP_PIN = process.env.NEXT_PUBLIC_APP_PIN || "1234";
@@ -81,6 +83,8 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<"new" | "applied" | "discarded">("new");
   const [selectedSource, setSelectedSource] = useState<string>("all");
   const [previewJob, setPreviewJob] = useState<Job | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   // 1. Manejo de autenticación por PIN
   useEffect(() => {
@@ -174,6 +178,11 @@ export default function Home() {
     }
   };
 
+  // Limpiar selección al cambiar de pestaña o filtro de portal
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [activeTab, selectedSource]);
+
   // Filtrado de ofertas
   const filteredJobs = jobs.filter((job) => {
     const matchesTab = job.status === activeTab;
@@ -182,6 +191,57 @@ export default function Home() {
       (job.source || "").toLowerCase() === selectedSource.toLowerCase();
     return matchesTab && matchesSource;
   });
+
+  const isHistoryTab = activeTab === "applied" || activeTab === "discarded";
+  const allFilteredSelected =
+    filteredJobs.length > 0 && filteredJobs.every((j) => selectedIds.includes(j.id));
+
+  const toggleSelectJob = (jobId: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(jobId) ? prev.filter((id) => id !== jobId) : [...prev, jobId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (allFilteredSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredJobs.map((j) => j.id));
+    }
+  };
+
+  const deleteSelectedJobs = async () => {
+    if (selectedIds.length === 0 || isDeleting) return;
+    const count = selectedIds.length;
+    const confirmed = window.confirm(
+      `¿Eliminar ${count} ${count === 1 ? "oferta" : "ofertas"} del historial? Esta acción no se puede deshacer.`
+    );
+    if (!confirmed) return;
+
+    const idsToDelete = [...selectedIds];
+    setIsDeleting(true);
+    try {
+      // Actualización optimista en UI
+      setJobs((prev) => prev.filter((j) => !idsToDelete.includes(j.id)));
+      setSelectedIds([]);
+      if (previewJob && idsToDelete.includes(previewJob.id)) {
+        setPreviewJob(null);
+      }
+
+      const { error } = await supabase
+        .from("jobs")
+        .delete()
+        .in("id", idsToDelete)
+        .neq("source", "__heartbeat__");
+
+      if (error) throw error;
+    } catch (err) {
+      console.error("Error al eliminar ofertas:", err);
+      fetchJobs(); // Revertir en caso de fallo
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const countNew = jobs.filter((j) => j.status === "new").length;
   const countApplied = jobs.filter((j) => j.status === "applied").length;
@@ -355,6 +415,34 @@ export default function Home() {
 
       {/* LISTADO DE OFERTAS */}
       <section className="p-3.5 space-y-3">
+        {/* BARRA DE LIMPIEZA (solo en Postuladas y Descartadas) */}
+        {!loading && isHistoryTab && filteredJobs.length > 0 && (
+          <div className="flex items-center justify-between gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2.5 shadow-sm">
+            <button
+              type="button"
+              onClick={toggleSelectAll}
+              className="flex items-center gap-1.5 rounded-lg border border-[#0D3878]/25 bg-[#F0F5FC] px-3 py-1.5 text-xs font-bold text-[#0D3878] transition hover:bg-[#E1ECFA] active:scale-95"
+            >
+              {allFilteredSelected ? (
+                <CheckSquare className="h-3.5 w-3.5 text-[#F36F21]" />
+              ) : (
+                <Square className="h-3.5 w-3.5" />
+              )}
+              {allFilteredSelected ? "Quitar selección" : "Seleccionar todo"}
+            </button>
+
+            <button
+              type="button"
+              onClick={deleteSelectedJobs}
+              disabled={selectedIds.length === 0 || isDeleting}
+              className="flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-rose-700 active:scale-95 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              {isDeleting ? "Borrando..." : `Borrar (${selectedIds.length})`}
+            </button>
+          </div>
+        )}
+
         {loading ? (
           <div className="flex flex-col items-center justify-center py-16 text-gray-500">
             <RefreshCw className="h-6 w-6 animate-spin text-[#0D3878]" />
@@ -371,21 +459,43 @@ export default function Home() {
             </p>
           </div>
         ) : (
-          filteredJobs.map((job) => (
+          filteredJobs.map((job) => {
+            const isSelected = selectedIds.includes(job.id);
+            return (
             <article
               key={job.id}
-              className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-[#0D3878]/40 hover:shadow-md"
+              className={`rounded-xl border p-4 shadow-sm transition hover:shadow-md ${
+                isSelected
+                  ? "border-[#0D3878] bg-[#F8FBFF] ring-1 ring-[#0D3878]/20"
+                  : "border-gray-200 bg-white hover:border-[#0D3878]/40"
+              }`}
             >
               {/* CABECERA DE LA TARJETA */}
               <div className="flex items-center justify-between text-[11px] mb-2">
-                <span
-                  className={`flex items-center gap-1 rounded-md px-2 py-0.5 font-bold uppercase tracking-wider ${getBadgeClass(
-                    job.source
-                  )}`}
-                >
-                  <Globe className="h-3 w-3" />
-                  {job.source}
-                </span>
+                <div className="flex items-center gap-2">
+                  {isHistoryTab && (
+                    <button
+                      type="button"
+                      onClick={() => toggleSelectJob(job.id)}
+                      aria-label={isSelected ? "Deseleccionar oferta" : "Seleccionar oferta"}
+                      className="flex items-center justify-center text-[#0D3878] hover:text-[#F36F21] transition active:scale-90"
+                    >
+                      {isSelected ? (
+                        <CheckSquare className="h-4 w-4 text-[#F36F21]" />
+                      ) : (
+                        <Square className="h-4 w-4 text-gray-400" />
+                      )}
+                    </button>
+                  )}
+                  <span
+                    className={`flex items-center gap-1 rounded-md px-2 py-0.5 font-bold uppercase tracking-wider ${getBadgeClass(
+                      job.source
+                    )}`}
+                  >
+                    <Globe className="h-3 w-3" />
+                    {job.source}
+                  </span>
+                </div>
                 <span className="flex items-center gap-1 font-medium text-[#5C6873]">
                   <Clock className="h-3 w-3 text-[#0D3878]/70" />
                   {job.published_time_text}
@@ -463,7 +573,8 @@ export default function Home() {
                 )}
               </div>
             </article>
-          ))
+            );
+          })
         )}
       </section>
 

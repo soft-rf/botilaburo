@@ -39,6 +39,8 @@
       activeTab: "new",
       selectedSource: "all",
       jobs: [],
+      selectedIds: [],
+      isDeleting: false,
       lastSyncAt: null,
       loading: true,
       previewJob: null,
@@ -122,6 +124,8 @@
         const matchesSource = state.selectedSource === "all" || (j.source || "").toLowerCase() === state.selectedSource.toLowerCase();
         return matchesTab && matchesSource;
       });
+      const isHistoryTab = state.activeTab === "applied" || state.activeTab === "discarded";
+      const allFilteredSelected = filteredJobs.length > 0 && filteredJobs.every(j => state.selectedIds.includes(j.id));
 
       app.innerHTML = `
         <!-- HEADER ESTILO COMPUTRABAJO -->
@@ -177,6 +181,17 @@
 
         <!-- LISTA -->
         <section class="p-3.5 space-y-3">
+          ${!state.loading && isHistoryTab && filteredJobs.length > 0 ? `
+            <div class="flex items-center justify-between gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2.5 shadow-sm">
+              <button onclick="toggleSelectAll()" class="flex items-center gap-1.5 rounded-lg border border-[#0D3878]/25 bg-[#F0F5FC] px-3 py-1.5 text-xs font-bold text-[#0D3878] hover:bg-[#E1ECFA]">
+                ${allFilteredSelected ? '☑️ Quitar selección' : '⬜ Seleccionar todo'}
+              </button>
+              <button onclick="deleteSelectedJobs()" ${state.selectedIds.length === 0 || state.isDeleting ? 'disabled' : ''} class="flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-rose-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:shadow-none">
+                🗑️ ${state.isDeleting ? 'Borrando...' : `Borrar (${state.selectedIds.length})`}
+              </button>
+            </div>
+          ` : ''}
+
           ${state.loading ? `
             <div class="py-16 text-center text-xs text-gray-500 font-medium">Buscando ofertas recientes...</div>
           ` : filteredJobs.length === 0 ? `
@@ -184,12 +199,19 @@
               <p class="text-sm font-bold text-[#0D3878]">No hay ofertas en esta sección</p>
               <p class="text-xs text-gray-500 mt-1">El bot buscará nuevas vacantes automáticamente en el próximo ciclo.</p>
             </div>
-          ` : filteredJobs.map(job => `
-            <article class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:border-[#0D3878]/40 transition">
+          ` : filteredJobs.map(job => {
+            const isSelected = state.selectedIds.includes(job.id);
+            return `
+            <article class="rounded-xl border p-4 shadow-sm transition ${isSelected ? 'border-[#0D3878] bg-[#F8FBFF] ring-1 ring-[#0D3878]/20' : 'border-gray-200 bg-white hover:border-[#0D3878]/40'}">
               <div class="flex items-center justify-between text-[11px] mb-2">
-                <span class="rounded-md px-2 py-0.5 font-bold uppercase tracking-wider ${getBadgeClass(job.source)}">
-                  ${job.source}
-                </span>
+                <div class="flex items-center gap-2">
+                  ${isHistoryTab ? `
+                    <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleSelectJob('${job.id}')" class="h-4 w-4 accent-[#F36F21] cursor-pointer rounded" />
+                  ` : ''}
+                  <span class="rounded-md px-2 py-0.5 font-bold uppercase tracking-wider ${getBadgeClass(job.source)}">
+                    ${job.source}
+                  </span>
+                </div>
                 <span class="font-medium text-[#5C6873]">🕒 ${job.published_time_text}</span>
               </div>
               <h2 class="text-[15px] font-bold text-[#0D3878] line-clamp-2 leading-snug">${job.title}</h2>
@@ -220,7 +242,7 @@
                 `}
               </div>
             </article>
-          `).join('')}
+          `;}).join('')}
         </section>
 
         <!-- MODAL VISTA PREVIA -->
@@ -312,8 +334,56 @@
       }
     }
 
-    function setTab(tab) { state.activeTab = tab; render(); }
-    function setSource(src) { state.selectedSource = src; render(); }
+    function toggleSelectJob(jobId) {
+      if (state.selectedIds.includes(jobId)) {
+        state.selectedIds = state.selectedIds.filter(id => id !== jobId);
+      } else {
+        state.selectedIds = [...state.selectedIds, jobId];
+      }
+      render();
+    }
+
+    function toggleSelectAll() {
+      const filteredJobs = state.jobs.filter(j => {
+        const matchesTab = j.status === state.activeTab;
+        const matchesSource = state.selectedSource === "all" || (j.source || "").toLowerCase() === state.selectedSource.toLowerCase();
+        return matchesTab && matchesSource;
+      });
+      const allSelected = filteredJobs.length > 0 && filteredJobs.every(j => state.selectedIds.includes(j.id));
+      state.selectedIds = allSelected ? [] : filteredJobs.map(j => j.id);
+      render();
+    }
+
+    async function deleteSelectedJobs() {
+      if (state.selectedIds.length === 0 || state.isDeleting) return;
+      const count = state.selectedIds.length;
+      if (!confirm(`¿Eliminar ${count} ${count === 1 ? "oferta" : "ofertas"} del historial? Esta acción no se puede deshacer.`)) return;
+
+      const idsToDelete = [...state.selectedIds];
+      state.isDeleting = true;
+      state.jobs = state.jobs.filter(j => !idsToDelete.includes(j.id));
+      state.selectedIds = [];
+      if (state.previewJob && idsToDelete.includes(state.previewJob.id)) state.previewJob = null;
+      render();
+
+      try {
+        const { error } = await supabaseClient
+          .from("jobs")
+          .delete()
+          .in("id", idsToDelete)
+          .neq("source", "__heartbeat__");
+        if (error) throw error;
+      } catch (err) {
+        console.error("Error eliminando:", err);
+        fetchJobs();
+      } finally {
+        state.isDeleting = false;
+        render();
+      }
+    }
+
+    function setTab(tab) { state.activeTab = tab; state.selectedIds = []; render(); }
+    function setSource(src) { state.selectedSource = src; state.selectedIds = []; render(); }
     function openPreview(id) { state.previewJob = state.jobs.find(j => j.id === id) || null; render(); }
     function closePreview() { state.previewJob = null; render(); }
 
