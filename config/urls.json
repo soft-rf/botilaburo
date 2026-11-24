@@ -246,5 +246,43 @@
       "type": "specific",
       "enabled": true
     }
+  ],
+  "linkedin": [
+    {
+      "category": "Soporte Técnico",
+      "url": "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=soporte+tecnico&location=Buenos+Aires%2C+Argentina&f_TPR=r86400&sortBy=DD&start=0",
+      "type": "specific",
+      "enabled": true
+    },
+    {
+      "category": "Help Desk / Mesa de Ayuda",
+      "url": "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=help+desk&location=Buenos+Aires%2C+Argentina&f_TPR=r86400&sortBy=DD&start=0",
+      "type": "specific",
+      "enabled": true
+    },
+    {
+      "category": "Desarrollador Web Junior",
+      "url": "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=desarrollador+web+junior&location=Buenos+Aires%2C+Argentina&f_TPR=r86400&sortBy=DD&start=0",
+      "type": "specific",
+      "enabled": true
+    },
+    {
+      "category": "Full Stack Junior",
+      "url": "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=full+stack+junior&location=Buenos+Aires%2C+Argentina&f_TPR=r86400&sortBy=DD&start=0",
+      "type": "specific",
+      "enabled": true
+    },
+    {
+      "category": "Farmacia / Auxiliar de Farmacia",
+      "url": "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=farmacia&location=Buenos+Aires%2C+Argentina&f_TPR=r86400&sortBy=DD&start=0",
+      "type": "specific",
+      "enabled": true
+    },
+    {
+      "category": "Administrativo",
+      "url": "https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=administrativo&location=Buenos+Aires%2C+Argentina&f_TPR=r86400&sortBy=DD&start=0",
+      "type": "specific",
+      "enabled": true
+    }
   ]
 }

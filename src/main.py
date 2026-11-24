@@ -17,6 +17,7 @@ from src.models.job import JobOffer
 from src.scrapers.bumeran import BumeranScraper
 from src.scrapers.computrabajo import ComputrabajoScraper
 from src.scrapers.indeed import IndeedScraper
+from src.scrapers.linkedin import LinkedInScraper
 from src.scrapers.zonajobs import ZonaJobsScraper
 from src.utils.database import JobDatabase
 from src.utils.deduplicator import JobDeduplicator
@@ -121,7 +122,8 @@ def main(headless: bool = True) -> None:
         "computrabajo": ComputrabajoScraper(headless=headless),
         "bumeran": BumeranScraper(headless=headless),
         "indeed": IndeedScraper(headless=headless),
-        "zonajobs": ZonaJobsScraper(headless=headless)
+        "zonajobs": ZonaJobsScraper(headless=headless),
+        "linkedin": LinkedInScraper(headless=headless)
     }
 
     # Agrupar búsquedas por portal para reutilizar el navegador (1 instancia por portal)

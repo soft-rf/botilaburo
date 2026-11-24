@@ -33,6 +33,7 @@ const getBadgeClass = (source: string) => {
   if (s === "bumeran") return "bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200";
   if (s === "indeed") return "bg-blue-50 text-blue-700 border border-blue-200";
   if (s === "zonajobs") return "bg-rose-50 text-rose-700 border border-rose-200";
+  if (s === "linkedin") return "bg-[#E8F3FF] text-[#0A66C2] border border-[#BBD9FA]";
   return "bg-gray-100 text-gray-700 border border-gray-200";
 };
 
@@ -343,7 +344,7 @@ export default function Home() {
 
         {/* SELECTOR DE FUENTE (Portales) */}
         <div className="mt-3 flex gap-1.5 overflow-x-auto pb-0.5 text-xs scrollbar-none">
-          {["all", "computrabajo", "bumeran", "indeed", "zonajobs"].map((src) => (
+          {["all", "computrabajo", "bumeran", "indeed", "zonajobs", "linkedin"].map((src) => (
             <button
               key={src}
               onClick={() => setSelectedSource(src)}

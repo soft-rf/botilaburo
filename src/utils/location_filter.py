@@ -13,6 +13,8 @@ ALLOWED_LOCATION_KEYWORDS: List[str] = [
     "caba",
     "buenos aires (capital federal)",
     "buenos aires, buenos aires",
+    "buenos aires, provincia de buenos aires",
+    "buenos aires y alrededores",
     # Barrios reconocidos de CABA
     "microcentro",
     "palermo",
