@@ -11,7 +11,6 @@ import {
   CheckCircle2,
   Trash2,
   RefreshCw,
-  Lock,
   Building2,
   Globe,
   Timer,
@@ -254,11 +253,15 @@ export default function Home() {
       <main className="flex min-h-screen items-center justify-center bg-[#F3F5F8] p-4">
         <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg">
           <div className="bg-[#0D3878] px-6 py-7 text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 text-white">
-              <Lock className="h-7 w-7" />
+            <div className="mx-auto flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-white p-1 shadow-md">
+              <img
+                src="/logo.svg"
+                alt="Agarra la pala"
+                className="h-full w-full object-contain"
+              />
             </div>
-            <h1 className="mt-4 text-2xl font-bold tracking-tight text-white">
-              Job<span className="text-[#F36F21]">Hunter</span>
+            <h1 className="mt-4 text-2xl font-extrabold tracking-tight text-white">
+              Agarra la <span className="text-emerald-400">pala</span>
             </h1>
             <p className="mt-1 text-xs text-blue-100">Ingresa tu PIN de acceso personal</p>
           </div>
@@ -284,7 +287,7 @@ export default function Home() {
             </div>
             <button
               type="submit"
-              className="w-full rounded-xl bg-[#F36F21] py-3 font-semibold text-white shadow-sm transition hover:bg-[#DC5F16] active:scale-[0.98]"
+              className="w-full rounded-xl bg-emerald-600 py-3 font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:scale-[0.98]"
             >
               Ingresar
             </button>
@@ -300,12 +303,16 @@ export default function Home() {
       <header className="sticky top-0 z-30 bg-[#0D3878] px-4 pt-3.5 pb-3 text-white shadow-md">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F36F21] text-white shadow-sm">
-              <Briefcase className="h-5 w-5" />
+            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white p-0.5 shadow-sm">
+              <img
+                src="/logo.svg"
+                alt="Agarra la pala"
+                className="h-full w-full object-contain"
+              />
             </div>
             <div>
               <h1 className="text-lg font-extrabold leading-none tracking-tight text-white">
-                Job<span className="text-[#FF8A3D]">Hunter</span>
+                Agarra la <span className="text-emerald-400">pala</span>
               </h1>
               <span className="text-[11px] text-blue-200 font-medium">
                 Ofertas recientes (máx. 2h)
@@ -536,7 +543,7 @@ export default function Home() {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => updateJobStatus(job.id, "applied")}
-                      className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#F36F21] py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#DC5F16] active:scale-95"
+                      className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-600 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700 active:scale-95"
                     >
                       <ExternalLink className="h-3.5 w-3.5" />
                       Postularme
@@ -630,7 +637,7 @@ export default function Home() {
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => updateJobStatus(previewJob.id, "applied")}
-                className="flex-1 rounded-xl bg-[#F36F21] py-3 text-center text-xs font-bold text-white shadow-sm hover:bg-[#DC5F16] transition capitalize"
+                className="flex-1 rounded-xl bg-emerald-600 py-3 text-center text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition capitalize"
               >
                 Ir a Postularme en {previewJob.source}
               </a>

@@ -2,9 +2,14 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Job Hunter - Ofertas de Empleo en Tiempo Real",
+  title: "Agarra la pala - Ofertas de Empleo en Tiempo Real",
   description: "Monitoreo y filtrado inteligente de ofertas de empleo recién publicadas",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/logo.svg",
+    shortcut: "/logo.svg",
+    apple: "/logo.svg",
+  },
 };
 
 export const viewport: Viewport = {

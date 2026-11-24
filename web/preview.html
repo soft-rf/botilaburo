@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Job Hunter - Vista Previa Local</title>
+  <title>Agarra la pala - Vista Previa Local</title>
+  <link rel="icon" type="image/svg+xml" href="./public/logo.svg">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -85,10 +86,10 @@
           <div class="flex min-h-screen items-center justify-center p-4">
             <div class="w-full max-w-sm overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg">
               <div class="bg-[#0D3878] px-6 py-7 text-center">
-                <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 text-white text-2xl">
-                  🔒
+                <div class="mx-auto flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-white p-1 shadow-md">
+                  <img src="./public/logo.svg" alt="Agarra la pala" class="h-full w-full object-contain" />
                 </div>
-                <h1 class="mt-4 text-2xl font-bold text-white">Job<span class="text-[#F36F21]">Hunter</span></h1>
+                <h1 class="mt-4 text-2xl font-extrabold text-white">Agarra la <span class="text-emerald-400">pala</span></h1>
                 <p class="mt-1 text-xs text-blue-100">Ingresa tu PIN de acceso (1234)</p>
               </div>
 
@@ -104,7 +105,7 @@
                   autofocus
                 />
                 ${state.pinError ? '<p class="text-center text-xs text-rose-600 font-medium">PIN incorrecto.</p>' : ''}
-                <button type="submit" class="w-full rounded-xl bg-[#F36F21] py-3 font-semibold text-white hover:bg-[#DC5F16] transition">
+                <button type="submit" class="w-full rounded-xl bg-emerald-600 py-3 font-semibold text-white hover:bg-emerald-700 transition">
                   Ingresar
                 </button>
               </form>
@@ -132,11 +133,11 @@
         <header class="sticky top-0 z-30 bg-[#0D3878] px-4 pt-3.5 pb-3 text-white shadow-md">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2.5">
-              <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F36F21] text-white font-bold shadow-sm">
-                💼
+              <div class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white p-0.5 shadow-sm">
+                <img src="./public/logo.svg" alt="Agarra la pala" class="h-full w-full object-contain" />
               </div>
               <div>
-                <h1 class="text-lg font-extrabold text-white leading-none">Job<span class="text-[#FF8A3D]">Hunter</span></h1>
+                <h1 class="text-lg font-extrabold text-white leading-none">Agarra la <span class="text-emerald-400">pala</span></h1>
                 <span class="text-[11px] text-blue-200 font-medium">Ofertas recientes (máx. 2h)</span>
               </div>
             </div>
@@ -225,7 +226,7 @@
                   👁️ Vista Previa
                 </button>
                 ${job.status === 'new' ? `
-                  <a href="${cleanJobUrl(job.url)}" target="_blank" onclick="updateStatus('${job.id}', 'applied')" class="flex-1 rounded-lg bg-[#F36F21] py-2.5 text-xs font-bold text-white text-center shadow-sm hover:bg-[#DC5F16]">
+                  <a href="${cleanJobUrl(job.url)}" target="_blank" onclick="updateStatus('${job.id}', 'applied')" class="flex-1 rounded-lg bg-emerald-600 py-2.5 text-xs font-bold text-white text-center shadow-sm hover:bg-emerald-700">
                     🔗 Postularme
                   </a>
                   <button onclick="updateStatus('${job.id}', 'discarded')" class="h-9 w-9 rounded-lg border border-gray-200 bg-gray-50 text-gray-400 hover:text-rose-600 hover:bg-rose-50">
@@ -267,7 +268,7 @@
                 <p class="text-[#5C6873] text-[11px] font-medium">⏱️ Publicado: ${state.previewJob.published_time_text}</p>
               </div>
               <div class="pt-3 border-t border-gray-200 flex gap-2">
-                <a href="${cleanJobUrl(state.previewJob.url)}" target="_blank" onclick="updateStatus('${state.previewJob.id}', 'applied')" class="flex-1 rounded-xl bg-[#F36F21] py-3 text-center text-xs font-bold text-white shadow-sm hover:bg-[#DC5F16] capitalize">
+                <a href="${cleanJobUrl(state.previewJob.url)}" target="_blank" onclick="updateStatus('${state.previewJob.id}', 'applied')" class="flex-1 rounded-xl bg-emerald-600 py-3 text-center text-xs font-bold text-white shadow-sm hover:bg-emerald-700 capitalize">
                   Ir a Postularme en ${state.previewJob.source}
                 </a>
                 ${state.previewJob.status === 'new' ? `
