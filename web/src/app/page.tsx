@@ -18,6 +18,15 @@ import {
 
 const APP_PIN = process.env.NEXT_PUBLIC_APP_PIN || "1234";
 
+const getBadgeClass = (source: string) => {
+  const s = (source || "").toLowerCase();
+  if (s === "computrabajo") return "bg-amber-500/10 text-amber-400 border border-amber-500/20";
+  if (s === "bumeran") return "bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20";
+  if (s === "indeed") return "bg-blue-500/10 text-blue-400 border border-blue-500/20";
+  if (s === "zonajobs") return "bg-rose-500/10 text-rose-400 border border-rose-500/20";
+  return "bg-slate-500/10 text-slate-400 border border-slate-500/20";
+};
+
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [pinInput, setPinInput] = useState<string>("");
@@ -185,7 +194,7 @@ export default function Home() {
 
         {/* SELECTOR DE FUENTE (Portales) */}
         <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1 text-xs scrollbar-none">
-          {["all", "computrabajo", "bumeran", "indeed"].map((src) => (
+          {["all", "computrabajo", "bumeran", "indeed", "zonajobs"].map((src) => (
             <button
               key={src}
               onClick={() => setSelectedSource(src)}
@@ -260,13 +269,7 @@ export default function Home() {
             >
               {/* CABECERA DE LA TARJETA */}
               <div className="flex items-center justify-between text-[11px] mb-2">
-                <span className={`flex items-center gap-1 rounded-md px-2 py-0.5 font-semibold uppercase tracking-wider ${
-                  job.source.toLowerCase() === "computrabajo"
-                    ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                    : job.source.toLowerCase() === "bumeran"
-                    ? "bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20"
-                    : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                }`}>
+                <span className={`flex items-center gap-1 rounded-md px-2 py-0.5 font-semibold uppercase tracking-wider ${getBadgeClass(job.source)}`}>
                   <Globe className="h-3 w-3" />
                   {job.source}
                 </span>
@@ -358,13 +361,7 @@ export default function Home() {
             {/* Header del Modal */}
             <div className="flex items-start justify-between border-b border-slate-800 pb-3">
               <div>
-                <span className={`rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-                  previewJob.source.toLowerCase() === "computrabajo"
-                    ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                    : previewJob.source.toLowerCase() === "bumeran"
-                    ? "bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20"
-                    : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                }`}>
+                <span className={`rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${getBadgeClass(previewJob.source)}`}>
                   {previewJob.source}
                 </span>
                 <h2 className="mt-1 text-base font-bold text-white">{previewJob.title}</h2>

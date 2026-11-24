@@ -117,7 +117,7 @@
 
           <!-- FILTRO FUENTE -->
           <div class="mt-3 flex gap-1.5 overflow-x-auto pb-1 text-xs">
-            ${["all", "computrabajo", "bumeran", "indeed"].map(src => `
+            ${["all", "computrabajo", "bumeran", "indeed", "zonajobs"].map(src => `
               <button onclick="setSource('${src}')" class="rounded-full px-3 py-1 font-medium capitalize transition ${
                 state.selectedSource === src ? "bg-slate-200 text-slate-950" : "bg-slate-900 text-slate-400 border border-slate-800"
               }">
@@ -155,7 +155,11 @@
               ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
               : src === 'bumeran'
               ? 'bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20'
-              : 'bg-blue-500/10 text-blue-400 border border-blue-500/20';
+              : src === 'indeed'
+              ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+              : src === 'zonajobs'
+              ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+              : 'bg-slate-500/10 text-slate-400 border border-slate-500/20';
             return `
             <article class="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-4 shadow-sm backdrop-blur-sm">
               <div class="flex items-center justify-between text-[11px] mb-2">
@@ -206,7 +210,9 @@
                       ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                       : (state.previewJob.source || '').toLowerCase() === 'bumeran'
                       ? 'bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20'
-                      : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                      : (state.previewJob.source || '').toLowerCase() === 'indeed'
+                      ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                      : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                   }">
                     ${state.previewJob.source}
                   </span>

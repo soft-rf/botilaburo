@@ -17,6 +17,7 @@ from src.models.job import JobOffer
 from src.scrapers.bumeran import BumeranScraper
 from src.scrapers.computrabajo import ComputrabajoScraper
 from src.scrapers.indeed import IndeedScraper
+from src.scrapers.zonajobs import ZonaJobsScraper
 from src.utils.database import JobDatabase
 from src.utils.deduplicator import JobDeduplicator
 from src.utils.keyword_filter import KeywordFilter
@@ -119,7 +120,8 @@ def main(headless: bool = True) -> None:
     scrapers: Dict[str, Any] = {
         "computrabajo": ComputrabajoScraper(headless=headless),
         "bumeran": BumeranScraper(headless=headless),
-        "indeed": IndeedScraper(headless=headless)
+        "indeed": IndeedScraper(headless=headless),
+        "zonajobs": ZonaJobsScraper(headless=headless)
     }
 
     all_fresh_offers: List[JobOffer] = []

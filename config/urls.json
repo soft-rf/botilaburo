@@ -184,5 +184,67 @@
       "type": "specific",
       "enabled": true
     }
+  ],
+  "zonajobs": [
+    {
+      "category": "CABA - Búsqueda General",
+      "url": "https://www.zonajobs.com.ar/en-buenos-aires/capital-federal/empleos.html?recientes=true",
+      "type": "general",
+      "enabled": true
+    },
+    {
+      "category": "San Martín - Búsqueda General",
+      "url": "https://www.zonajobs.com.ar/en-buenos-aires/san-martin/empleos.html?recientes=true",
+      "type": "general",
+      "enabled": true
+    },
+    {
+      "category": "Caseros - Búsqueda General",
+      "url": "https://www.zonajobs.com.ar/en-buenos-aires/caseros/empleos.html?recientes=true",
+      "type": "general",
+      "enabled": true
+    },
+    {
+      "category": "Vicente López - Búsqueda General",
+      "url": "https://www.zonajobs.com.ar/en-buenos-aires/vicente-lopez/empleos.html?recientes=true",
+      "type": "general",
+      "enabled": true
+    },
+    {
+      "category": "San Isidro - Búsqueda General",
+      "url": "https://www.zonajobs.com.ar/en-buenos-aires/san-isidro/empleos.html?recientes=true",
+      "type": "general",
+      "enabled": true
+    },
+    {
+      "category": "Soporte Técnico",
+      "url": "https://www.zonajobs.com.ar/empleos-busqueda-soporte-tecnico.html?recientes=true",
+      "type": "specific",
+      "enabled": true
+    },
+    {
+      "category": "Help Desk",
+      "url": "https://www.zonajobs.com.ar/empleos-busqueda-help-desk.html?recientes=true",
+      "type": "specific",
+      "enabled": true
+    },
+    {
+      "category": "Mesa de Ayuda",
+      "url": "https://www.zonajobs.com.ar/empleos-busqueda-mesa-de-ayuda.html?recientes=true",
+      "type": "specific",
+      "enabled": true
+    },
+    {
+      "category": "Farmacia",
+      "url": "https://www.zonajobs.com.ar/empleos-busqueda-farmacia.html?recientes=true",
+      "type": "specific",
+      "enabled": true
+    },
+    {
+      "category": "Administrativo",
+      "url": "https://www.zonajobs.com.ar/empleos-busqueda-administrativo.html?recientes=true",
+      "type": "specific",
+      "enabled": true
+    }
   ]
 }
