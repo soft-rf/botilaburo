@@ -47,6 +47,10 @@ def parse_time_to_minutes(time_text: str) -> Optional[int]:
     if match_hours:
         return int(match_hours.group(1)) * 60
 
+    # Hoy / Publicado hoy
+    if "hoy" in clean_text:
+        return 60
+
     # Ayer
     if "ayer" in clean_text:
         return 24 * 60

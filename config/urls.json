@@ -122,5 +122,67 @@
       "type": "specific",
       "enabled": true
     }
+  ],
+  "indeed": [
+    {
+      "category": "CABA - Búsqueda General",
+      "url": "https://ar.indeed.com/jobs?l=Capital+Federal%2C+Buenos+Aires&sort=date",
+      "type": "general",
+      "enabled": true
+    },
+    {
+      "category": "San Martín - Búsqueda General",
+      "url": "https://ar.indeed.com/jobs?l=San+Mart%C3%ADn%2C+Buenos+Aires&sort=date",
+      "type": "general",
+      "enabled": true
+    },
+    {
+      "category": "Tres de Febrero (Caseros) - General",
+      "url": "https://ar.indeed.com/jobs?l=Caseros%2C+Buenos+Aires&sort=date",
+      "type": "general",
+      "enabled": true
+    },
+    {
+      "category": "Vicente López - General",
+      "url": "https://ar.indeed.com/jobs?l=Vicente+L%C3%B3pez%2C+Buenos+Aires&sort=date",
+      "type": "general",
+      "enabled": true
+    },
+    {
+      "category": "San Isidro - General",
+      "url": "https://ar.indeed.com/jobs?l=San+Isidro%2C+Buenos+Aires&sort=date",
+      "type": "general",
+      "enabled": true
+    },
+    {
+      "category": "Soporte Técnico",
+      "url": "https://ar.indeed.com/jobs?q=soporte+tecnico&l=Buenos+Aires&sort=date",
+      "type": "specific",
+      "enabled": true
+    },
+    {
+      "category": "Help Desk",
+      "url": "https://ar.indeed.com/jobs?q=help+desk&l=Buenos+Aires&sort=date",
+      "type": "specific",
+      "enabled": true
+    },
+    {
+      "category": "Mesa de Ayuda",
+      "url": "https://ar.indeed.com/jobs?q=mesa+de+ayuda&l=Buenos+Aires&sort=date",
+      "type": "specific",
+      "enabled": true
+    },
+    {
+      "category": "Farmacia",
+      "url": "https://ar.indeed.com/jobs?q=farmacia&l=Buenos+Aires&sort=date",
+      "type": "specific",
+      "enabled": true
+    },
+    {
+      "category": "Administrativo",
+      "url": "https://ar.indeed.com/jobs?q=administrativo&l=Buenos+Aires&sort=date",
+      "type": "specific",
+      "enabled": true
+    }
   ]
 }

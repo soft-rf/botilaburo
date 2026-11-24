@@ -32,13 +32,13 @@ El sistema opera como un pipeline de datos desacoplado y multi-portal:
 └─────────────────────────────────┘
 ```
 
-1. **Extracción Multi-Portal:** Monitorea portales líderes (**Computrabajo** y **Bumeran Argentina**) con orden cronológico (`?by=publication_date`, `?recientes=true`).
-2. **Filtro Geográfico Quirúrgico:** Limita la búsqueda exclusivamente a **CABA**, **San Martín / Villa Maipú**, **Caseros / Sáenz Peña**, **Zona Norte (Vicente López a San Isidro)** y **Remoto / Híbrido**.
+1. **Extracción Multi-Portal:** Monitorea portales líderes (**Computrabajo**, **Bumeran** e **Indeed Argentina**) con orden cronológico (`?by=publication_date`, `?recientes=true`, `&sort=date`).
+2. **Filtro Geográfico Quirúrgico:** Limita la búsqueda exclusivamente a **CABA** (todos los barrios reconocidos), **San Martín / Villa Maipú**, **Caseros / Sáenz Peña**, **Zona Norte (Vicente López a San Isidro)** y **Remoto / Híbrido**.
 3. **Ventana Temporal Estricta (< 2 Horas):** Convierte marcas relativas de tiempo a minutos y conserva solo vacantes con menos de 120 minutos de antigüedad.
-4. **Filtro Semántico Local (Sin APIs Externas):** Analiza títulos y descripciones según [`config/profile.json`](config/profile.json) buscando áreas de interés (IT/Soporte/Redes, Farmacia Comercial, Administración) y descartando al instante avisos de ventas en frío, telemarketers, choferes, gastronomía o perfiles senior/universitarios avanzados.
+4. **Filtro Semántico Local (Sin APIs Externas):** Analiza títulos y descripciones según [`config/profile.json`](config/profile.json) buscando áreas de interés (IT/Soporte/Redes, Farmacia Comercial, Administración) y descartando al instante avisos de ventas en frío, telemarketers, choferes, gastronomía, operarios, depósitos, logística o perfiles senior/universitarios avanzados.
 5. **Deduplicador con Ventana Deslizante (24 Horas):** Memoria local (`data/history_24h.json`) que evita re-procesar ofertas ya vistas en el día.
 6. **Doble Persistencia:** Exporta a [`data/ofertas_filtradas.csv`](data/ofertas_filtradas.csv) para respaldo y sincroniza con **Supabase (PostgreSQL)** en la nube.
-7. **Centro de Comando Web Mobile-First:** Panel responsive listo para **Vercel** ([`web/`](web)) con PIN de seguridad, vista previa detallada de requisitos y botones directos para postulación o descarte.
+7. **Centro de Comando Web Mobile-First:** Panel responsive listo para **Vercel** ([`web/`](web)) con PIN de seguridad, filtro por portal (Computrabajo, Bumeran, Indeed), vista previa detallada de requisitos y botones directos para postulación o descarte.
 
 ---
 
@@ -61,7 +61,8 @@ botilabu/
 │   │   ├── __init__.py
 │   │   ├── base.py             # Clase abstracta BaseScraper
 │   │   ├── computrabajo.py     # Scraper específico para Computrabajo
-│   │   └── bumeran.py          # Scraper específico para Bumeran
+│   │   ├── bumeran.py          # Scraper específico para Bumeran
+│   │   └── indeed.py           # Scraper específico para Indeed Argentina
 │   ├── utils/
 │   │   ├── __init__.py
 │   │   ├── time_filter.py      # Normalizador y filtro temporal (< 120 min)

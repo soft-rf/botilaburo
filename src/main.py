@@ -16,6 +16,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from src.models.job import JobOffer
 from src.scrapers.bumeran import BumeranScraper
 from src.scrapers.computrabajo import ComputrabajoScraper
+from src.scrapers.indeed import IndeedScraper
 from src.utils.database import JobDatabase
 from src.utils.deduplicator import JobDeduplicator
 from src.utils.keyword_filter import KeywordFilter
@@ -113,7 +114,8 @@ def main() -> None:
     # Inicializamos los scrapers disponibles para cada portal
     scrapers: Dict[str, Any] = {
         "computrabajo": ComputrabajoScraper(headless=False),
-        "bumeran": BumeranScraper(headless=False)
+        "bumeran": BumeranScraper(headless=False),
+        "indeed": IndeedScraper(headless=False)
     }
 
     all_fresh_offers: List[JobOffer] = []
