@@ -82,10 +82,11 @@ class JobDatabase:
             })
 
         try:
-            # Usamos upsert basado en la restricción única (source, external_id)
+            # ignore_duplicates=True evita sobrescribir ofertas que ya fueron postuladas o descartadas
             response = self.client.table("jobs").upsert(
                 records,
-                on_conflict="source, external_id"
+                on_conflict="source, external_id",
+                ignore_duplicates=True
             ).execute()
 
             if response.data:

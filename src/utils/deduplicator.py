@@ -1,29 +1,50 @@
-"""Módulo de gestión de historial y deduplicación con ventana deslizante de 24 horas."""
+"""Módulo de gestión de historial y deduplicación con caché persistente y huella digital."""
 
 from datetime import datetime, timedelta
 import json
 import logging
 from pathlib import Path
-from typing import Dict, List
+import re
+from typing import Dict, List, Optional
+import unicodedata
 
 from src.models.job import JobOffer
 
 logger = logging.getLogger(__name__)
 
+GENERIC_COMPANIES = (
+    "confidencial",
+    "no especificada",
+    "importante empresa",
+    "empresa confidencial",
+)
+
+
+def _normalize_key(text: str) -> str:
+    """Normaliza texto a minúsculas sin tildes ni signos para generar huellas digitales estables."""
+    if not text:
+        return ""
+    nfkd = unicodedata.normalize("NFKD", text)
+    no_accents = "".join(c for c in nfkd if not unicodedata.combining(c)).lower()
+    # Quitar puntos sin agregar espacio para unificar 'S.A.' con 'SA' o 'S.R.L.' con 'SRL'
+    no_dots = no_accents.replace(".", "")
+    alnum = re.sub(r"[^a-z0-9\s]", " ", no_dots)
+    return re.sub(r"\s+", " ", alnum).strip()
+
 
 class JobDeduplicator:
-    """Administra el registro de ofertas vistas en las últimas 24 horas para evitar duplicados."""
+    """Administra el registro persistente de ofertas vistas para evitar duplicados y reapariciones."""
 
-    def __init__(self, history_file: Path, max_age_hours: int = 24) -> None:
-        """Inicializa el deduplicador.
+    def __init__(self, history_file: Path, max_age_hours: int = 24 * 14) -> None:
+        """Inicializa el deduplicador con ventana configurable (por defecto 14 días).
 
         Args:
             history_file: Ruta al archivo JSON donde se almacena el historial.
-            max_age_hours: Horas máximas de permanencia en el historial antes de expirar.
+            max_age_hours: Horas máximas de permanencia en caché antes de expirar (default: 336h = 14 días).
         """
         self.history_file = history_file
         self.max_age_hours = max_age_hours
-        self.history: Dict[str, str] = {}  # Formato: {identificador: timestamp_iso}
+        self.history: Dict[str, str] = {}  # Formato: {identificador_o_huella: timestamp_iso}
         self._load_history()
 
     def _load_history(self) -> None:
@@ -40,11 +61,28 @@ class JobDeduplicator:
             logger.warning("No se pudo cargar el historial desde %s: %s. Se iniciará vacío.", self.history_file, str(e))
             self.history = {}
 
+    def _build_fingerprint(self, job: JobOffer) -> Optional[str]:
+        """Genera una huella digital (empresa + título) para detectar avisos republicados o multi-portal.
+
+        Args:
+            job: Objeto JobOffer a evaluar.
+
+        Returns:
+            Clave normalizada 'fp:empresa|titulo' o None si la empresa es confidencial/genérica.
+        """
+        norm_company = _normalize_key(job.company)
+        norm_title = _normalize_key(job.title)
+        if not norm_company or not norm_title:
+            return None
+        if any(gen in norm_company for gen in GENERIC_COMPANIES):
+            return None
+        return f"fp:{norm_company}|{norm_title}"
+
     def purge_expired(self) -> int:
         """Elimina las ofertas registradas hace más de max_age_hours.
 
         Returns:
-            Cantidad de ofertas purgadas del historial.
+            Cantidad de registros purgados del historial.
         """
         now = datetime.now()
         threshold = now - timedelta(hours=self.max_age_hours)
@@ -61,13 +99,13 @@ class JobDeduplicator:
 
         purged_count = initial_count - len(valid_history)
         if purged_count > 0:
-            logger.info("Se purgaron %d ofertas con más de %d horas del historial.", purged_count, self.max_age_hours)
+            logger.info("Se purgaron %d registros con más de %d horas del historial.", purged_count, self.max_age_hours)
 
         self.history = valid_history
         return purged_count
 
     def is_duplicate(self, job: JobOffer) -> bool:
-        """Verifica si una oferta ya fue registrada en la ventana activa.
+        """Verifica si una oferta ya fue registrada por ID o por huella (empresa + título).
 
         Args:
             job: Objeto JobOffer a verificar.
@@ -76,7 +114,12 @@ class JobDeduplicator:
             True si la oferta ya fue procesada previamente; False si es nueva.
         """
         identifier = job.job_id or job.url
-        return identifier in self.history
+        if identifier and identifier in self.history:
+            return True
+        fingerprint = self._build_fingerprint(job)
+        if fingerprint and fingerprint in self.history:
+            return True
+        return False
 
     def filter_new_offers(self, offers: List[JobOffer]) -> List[JobOffer]:
         """Filtra y devuelve únicamente las ofertas no vistas previamente, registrándolas.
@@ -96,9 +139,12 @@ class JobDeduplicator:
             if not identifier:
                 continue
 
-            if identifier not in self.history:
+            if not self.is_duplicate(job):
                 new_offers.append(job)
                 self.history[identifier] = now_iso
+                fingerprint = self._build_fingerprint(job)
+                if fingerprint:
+                    self.history[fingerprint] = now_iso
 
         if new_offers:
             self.save()

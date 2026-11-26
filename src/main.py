@@ -112,8 +112,8 @@ def main(headless: bool = True) -> None:
 
     logger.info("Se procesarán %d búsquedas/categorías configuradas.", len(search_targets))
 
-    # Inicializamos el deduplicador (memoria de 24 horas), filtro de palabras clave y cliente de BD
-    deduplicator = JobDeduplicator(history_file=history_file, max_age_hours=24)
+    # Inicializamos el deduplicador (caché de 14 días + huella digital), filtro de palabras clave y cliente de BD
+    deduplicator = JobDeduplicator(history_file=history_file, max_age_hours=24 * 14)
     keyword_filter = KeywordFilter(config_path=profile_file)
     db = JobDatabase()
 
